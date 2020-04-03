@@ -1,0 +1,34 @@
+# -*- cmake -*-
+
+CMAKE_MINIMUM_REQUIRED(VERSION 3.14)
+
+project(microblx-ros)
+
+find_package(PkgConfig REQUIRED)
+
+#find_package(orocos_kdl REQUIRED)
+#include_directories(${orocos_kdl_INCLUDE_DIRS})
+#link_directories(${orocos_kdl_LIBRARY_DIRS})
+
+pkg_check_modules(ROSCPP REQUIRED roscpp)
+pkg_check_modules(KDL REQUIRED orocos-kdl>=1.4.0)
+pkg_check_modules(UBX REQUIRED kdlubx)
+pkg_check_modules(UBX REQUIRED ubx0>=0.8.0)
+pkg_get_variable(UBX_MODDIR ubx0 UBX_MODDIR)
+
+# kdl_types
+add_library(ros_vector3 SHARED src/ros_vector3.cpp)
+set_target_properties(ros_vector3 PROPERTIES
+  INSTALL_RPATH_USE_LINK_PATH TRUE
+  PREFIX "")
+
+target_compile_options(ros_vector3 PUBLIC
+  "${UBX_CFLAGS} ${ROS_CFLAGS} ${KDL_CFLAGS}"
+  -Wall -Wextra -Werror
+  -Wno-missing-field-initializers
+  )
+
+target_link_libraries(ros_vector3 ${UBX_LDFLAGS} ${ROS_LDFLAGS})
+
+install(TARGETS ros_vector3
+  DESTINATION ${UBX_MODDIR})
