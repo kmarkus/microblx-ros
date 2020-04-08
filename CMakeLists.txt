@@ -28,7 +28,7 @@ target_compile_options(ubxros PUBLIC
   -Wno-missing-field-initializers
   )
 
-target_link_libraries(ubxros ${UBX_LDFLAGS} ${ROS_LDFLAGS})
+target_link_libraries(ubxros ${UBX_LDFLAGS} ${ROSCPP_LDFLAGS})
 
 install(TARGETS ubxros
   DESTINATION ${UBX_MODDIR})

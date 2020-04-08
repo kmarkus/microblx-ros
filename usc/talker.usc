@@ -1,17 +1,8 @@
---- basic pid controller
---
--- this include a dummy ramp trajectory generator (ramp_des) and the
--- actual pid controller. The parent composition shall attach a sensor
--- signal to the the pid.msr port.
---
--- the basic (passive) trig block in this composition triggers the
--- ramp_des and the controller. Parent compositions can override this
--- to add other blocks such as the measured signal provider block.
 
 return bd.system
 {
    imports = {
-      "stdtypes", "ubxros", "ramp_int32"
+      "stdtypes", "lfds_cyclic", "ubxros", "ramp_int32", "ptrig"
    },
 
    blocks = {
@@ -21,20 +12,19 @@ return bd.system
    },
 
    configurations = {
-      { name="rosbridge", config = { topic="ubx_ramp_out" } },
-      { name="ramp_out", config = { slope=1, start=0 } },
+      { name="rosbridge_1", config = { topic_out="ubx_ramp_out" } },
+      { name="ramp_1", config = { slope=1, start=0 } },
       { name="ptrig_1", config = {
-	   sched_priority=99,
-	   sched_policy='SCHED_FIFO',
-	   period = {sec=0, usec=1000 },
+	   period = {sec=1, usec=0 },
 	   tstats_mode=1,
 	   tstats_profile_path="/tmp/ptrig_1.tstats",
 	   trig_blocks={
-	      { b="#controller/trig_1", num_steps=1 } } }
+	      { b="#ramp_1" }
+	   } }
       },
    },
 
    connections = {
-      { src="ramp_1.out", tgt="rosbridge_1.out" },
+      { src="ramp_1.out", tgt="rosbridge_1.toros" },
    },
 }

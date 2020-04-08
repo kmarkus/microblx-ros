@@ -8,7 +8,7 @@
 
 /* block meta information */
 char ubxros_meta[] =
-    " { doc='A mixed port geometry_msg/Vector3' block,"
+    " { doc='A mixed port block geometry_msg/Vector3' block,"
     "   realtime=false,"
     "}";
 
@@ -21,8 +21,8 @@ ubx_config_t ubxros_config[] = {
 
 /* declaration port block ports */
 ubx_port_t ubxros_ports[] = {
-    { .name="pos_out", .doc="out pos", .out_type_name="double" },
-    { .name="pos_in", .doc="in pos", .in_type_name="double" },
+    { .name="fromros", .doc="out port", .out_type_name="int32_t" },
+    { .name="toros", .doc="in port", .in_type_name="int32_t" },
     { 0 },
 };
 
@@ -32,7 +32,8 @@ struct ubxros_info
     /* cached ports */
     struct
     {
-        ubx_port_t *pos;
+        ubx_port_t *toros;
+        ubx_port_t *fromros;
     };
 };
 
@@ -56,26 +57,27 @@ int ubxros_init(ubx_block_t *b)
 
     b->private_data = inf;
 
-    /* config topic */
-    len = cfg_getptr_char(b, "topic", &topic);
+    /* config topic_out */
+    len = cfg_getptr_char(b, "topic_out", &topic);
 
     if (len < 0) {
-        ubx_err(b, "failed to retrive cfg 'topic'");
+        ubx_err(b, "failed to retrive cfg 'topic_out'");
         goto out_free;
     } else if (len == 0) {
-        ubx_err(b, "mandatory config 'topic' unset");
+        ubx_err(b, "mandatory config 'topic_out' unset");
         goto out_free;
     }
 
     /* need to create node? */
     if (!ros::isInitialized()) {
-        ubx_info(b, "initializing ROS node");
         int argc = 0;
         char** argv = NULL;
-        ros::init(argc, argv, b->ni->name, ros::init_options::AnonymousName);
+        ros::init(argc, argv, "ubx", ros::init_options::AnonymousName);
 
         /* start the node */
         ros::start();
+        ubx_info(b, "initialized ROS node %s", ros::this_node::getName().c_str());
+
     }
 
     /* ensure a ROS master is running */
@@ -87,7 +89,8 @@ int ubxros_init(ubx_block_t *b)
     /* subscribe */
 
     /* cache ports */
-    inf->pos = ubx_port_get(b, "pos");
+    inf->toros = ubx_port_get(b, "toros");
+    inf->fromros = ubx_port_get(b, "fromros");
 
     /* all good */
     ret=0;
@@ -140,7 +143,7 @@ void ubxros_step(ubx_block_t *b)
 
 /* put everything together */
 ubx_block_t ubxros_block = {
-    .name = "myblock",
+    .name = "ubxros",
     .meta_data = ubxros_meta,
     .type = BLOCK_TYPE_COMPUTATION,
 
@@ -165,7 +168,7 @@ int ubxros_mod_init(ubx_node_info_t* ni)
 
 void ubxros_mod_cleanup(ubx_node_info_t *ni)
 {
-    ubx_block_unregister(ni, "myblock");
+    ubx_block_unregister(ni, "ubxros");
 }
 
 UBX_MODULE_INIT(ubxros_mod_init)
