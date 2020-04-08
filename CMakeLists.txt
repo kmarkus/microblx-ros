@@ -17,18 +17,18 @@ pkg_check_modules(UBX REQUIRED ubx0>=0.8.0)
 pkg_get_variable(UBX_MODDIR ubx0 UBX_MODDIR)
 
 # kdl_types
-add_library(ros_vector3 SHARED src/ros_vector3.cpp)
-set_target_properties(ros_vector3 PROPERTIES
+add_library(ubxros SHARED src/ubxros.cpp)
+set_target_properties(ubxros PROPERTIES
   INSTALL_RPATH_USE_LINK_PATH TRUE
   PREFIX "")
 
-target_compile_options(ros_vector3 PUBLIC
+target_compile_options(ubxros PUBLIC
   "${UBX_CFLAGS} ${ROS_CFLAGS} ${KDL_CFLAGS}"
   -Wall -Wextra -Werror -fvisibility=hidden
   -Wno-missing-field-initializers
   )
 
-target_link_libraries(ros_vector3 ${UBX_LDFLAGS} ${ROS_LDFLAGS})
+target_link_libraries(ubxros ${UBX_LDFLAGS} ${ROS_LDFLAGS})
 
-install(TARGETS ros_vector3
+install(TARGETS ubxros
   DESTINATION ${UBX_MODDIR})
