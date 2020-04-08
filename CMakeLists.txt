@@ -24,7 +24,7 @@ set_target_properties(ros_vector3 PROPERTIES
 
 target_compile_options(ros_vector3 PUBLIC
   "${UBX_CFLAGS} ${ROS_CFLAGS} ${KDL_CFLAGS}"
-  -Wall -Wextra -Werror
+  -Wall -Wextra -Werror -fvisibility=hidden
   -Wno-missing-field-initializers
   )
 
