@@ -15,11 +15,12 @@ return bd.system
       { name="rosbridge_1", config = { topic_out="ubx_ramp_out" } },
       { name="ramp_1", config = { slope=1, start=0 } },
       { name="ptrig_1", config = {
-	   period = {sec=1, usec=0 },
+	   period = {sec=0, usec=100000 },
 	   tstats_mode=1,
 	   tstats_profile_path="/tmp/ptrig_1.tstats",
 	   trig_blocks={
-	      { b="#ramp_1" }
+	      { b="#ramp_1" },
+	      { b="#rosbridge_1" }
 	   } }
       },
    },
