@@ -9,11 +9,8 @@
 #include <ros/ros.h>
 #include "std_msgs/Int32.h"
 
-/* wait 3 seconds for node to shutdown cleanly */
-#define	ROS_SHUTDOWN_TIMEOUT_US	100000
-#define	ROS_SHUTDOWN_RETRIES	0
-
-def_read_fun(read_int32, int32_t);
+def_read_fun(read_int32, int32_t)
+def_write_fun(write_int32, int32_t)
 
 /* block meta information */
 char ubxros_meta[] =
@@ -23,8 +20,8 @@ char ubxros_meta[] =
 
 /* declaration of block configuration */
 ubx_config_t ubxros_config[] = {
-    { .name="topic_out", .type_name = "char" },
-    { .name="topic_in", .type_name = "char" },
+    { .name="topic_pub", .type_name = "char" },
+    { .name="topic_sub", .type_name = "char" },
     { 0 },
 };
 
@@ -40,8 +37,10 @@ struct ubxros_info
 {
     ros::NodeHandle *nh;
     ros::Publisher pub;
+    ros::Subscriber sub;
 
-    const char *topic_out;
+    const char *topic_pub;
+    const char *topic_sub;
 
     /* cached ports */
     struct
@@ -72,14 +71,21 @@ int ubxros_init(ubx_block_t *b)
 
     b->private_data = inf;
 
-    /* config topic_out */
-    len = cfg_getptr_char(b, "topic_out", &inf->topic_out);
+    /* config topic_pub */
+    len = cfg_getptr_char(b, "topic_pub", &inf->topic_pub);
+    assert(len>0);
 
-    if (len < 0) {
-        ubx_err(b, "failed to retrive cfg 'topic_out'");
+    if (len == 0) {
+        ubx_err(b, "mandatory config 'topic_pub' unset");
         goto out_free;
-    } else if (len == 0) {
-        ubx_err(b, "mandatory config 'topic_out' unset");
+    }
+
+    /* config topic_sub */
+    len = cfg_getptr_char(b, "topic_sub", &inf->topic_sub);
+    assert(len>=0);
+
+    if (len == 0) {
+        ubx_err(b, "mandatory config 'topic_sub' unset");
         goto out_free;
     }
 
@@ -87,7 +93,9 @@ int ubxros_init(ubx_block_t *b)
     if (!ros::isInitialized()) {
         int argc = 0;
         char** argv = NULL;
-        ros::init(argc, argv, "ubx", ros::init_options::AnonymousName);
+        ros::init(argc, argv, "ubx",
+                  ros::init_options::AnonymousName |
+                  ros::init_options::NoSigintHandler);
 
         /* start the node */
         ros::start();
@@ -107,6 +115,8 @@ int ubxros_init(ubx_block_t *b)
     /* cache ports */
     inf->toros = ubx_port_get(b, "toros");
     inf->fromros = ubx_port_get(b, "fromros");
+    assert(inf->toros);
+    assert(inf->fromros);
 
     /* all good */
     ret=0;
@@ -130,10 +140,18 @@ int ubxros_start(ubx_block_t *b)
     }
 
     /* subscribe */
-    ubx_debug(b, "advertisting topic %s", inf->topic_out);
+    ubx_debug(b, "advertisting topic %s", inf->topic_pub);
 
-    inf->pub = inf->nh->advertise<std_msgs::Int32>(inf->topic_out, 10);
+    inf->pub = inf->nh->advertise<std_msgs::Int32>(inf->topic_pub, 10);
 
+    inf->sub = inf->nh->subscribe<std_msgs::Int32>(
+        inf->topic_sub, 10,
+        [&](const std_msgs::Int32ConstPtr& msg) {
+            ubx_debug(b, "received something");
+            int32_t data = msg->data;
+            data = 99;
+            write_int32(inf->fromros, &data);
+        });
     /* OK */
     ret = 0;
 out:
@@ -160,33 +178,30 @@ void ubxros_cleanup(ubx_block_t *b)
 
     ros::shutdown();
 
-    // /* wait some time for thread to shutdown cleanly */
-    // for (int i=ROS_SHUTDOWN_RETRIES; i>=0; i--) {
-    //     if (!ros::ok())
-    //         goto out;
-
-    //     //usleep(ROS_SHUTDOWN_TIMEOUT_US);
-    // }
-
-    // ubx_warn(b, "timeout waiting for node to shutdown");
-
-    // out:
     return;
 }
 
 /* step */
 void ubxros_step(ubx_block_t *b)
 {
-
     long len;
     std_msgs::Int32 msg;
 
     struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
 
+    // process callbacks
+    ros::spinOnce();
+
+    // publish data
     len = read_int32(inf->toros, &msg.data);
 
-    if(len > 0)
+    if(len > 0) {
         inf->pub.publish(msg);
+    } else if (len == 0) {
+        ubx_debug(b, "no new data");
+    } else {
+        ubx_err(b, "failed to read toros port");
+    }
 }
 
 /* put everything together */
@@ -206,9 +221,6 @@ ubx_block_t ubxros_block = {
     .step = ubxros_step,
 };
 
-
-
-/* myblock module init and cleanup functions */
 int ubxros_mod_init(ubx_node_info_t* ni)
 {
     return ubx_block_register(ni, &ubxros_block);
