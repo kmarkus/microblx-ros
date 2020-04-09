@@ -7,7 +7,8 @@
 #include <ubx/ubx.h>
 #include <kdlubx/kdl.h>
 #include <ros/ros.h>
-#include "std_msgs/Int32.h"
+#include <std_msgs/Int32.h>
+#include <kdl_conversions/kdl_msg.h>
 
 def_read_fun(read_int32, int32_t)
 def_write_fun(write_int32, int32_t)
@@ -110,8 +111,6 @@ int ubxros_init(ubx_block_t *b)
         goto out_free;
     }
 
-    /* subscribe */
-
     /* cache ports */
     inf->toros = ubx_port_get(b, "toros");
     inf->fromros = ubx_port_get(b, "fromros");
@@ -146,11 +145,9 @@ int ubxros_start(ubx_block_t *b)
 
     inf->sub = inf->nh->subscribe<std_msgs::Int32>(
         inf->topic_sub, 10,
-        [&](const std_msgs::Int32ConstPtr& msg) {
-            ubx_debug(b, "received something");
-            int32_t data = msg->data;
-            data = 99;
-            write_int32(inf->fromros, &data);
+        [b,inf](const std_msgs::Int32ConstPtr& msg) {
+            ubx_debug(b, "received %i", msg->data);
+            write_int32(inf->fromros, &msg->data);
         });
     /* OK */
     ret = 0;
@@ -163,6 +160,7 @@ void ubxros_stop(ubx_block_t *b)
 {
     struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
     ubx_debug(b, "shutting down topic");
+    inf->sub.shutdown();
     inf->pub.shutdown();
 }
 
@@ -174,7 +172,7 @@ void ubxros_cleanup(ubx_block_t *b)
     ubx_info(b, "shutting down ROS node %s", ros::this_node::getName().c_str());
 
     delete(inf->nh);
-    free(b->private_data);
+    delete(inf);
 
     ros::shutdown();
 
