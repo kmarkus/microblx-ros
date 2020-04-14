@@ -5,13 +5,10 @@
 #define UBX_DEBUG
 
 #include <ubx/ubx.h>
-#include <kdlubx/kdl.h>
+#include <ubxkdl.hpp>
 #include <ros/ros.h>
 #include <std_msgs/Int32.h>
 #include <kdl_conversions/kdl_msg.h>
-
-def_read_fun(read_int32, int32_t)
-def_write_fun(write_int32, int32_t)
 
 /* block meta information */
 char ubxros_meta[] =

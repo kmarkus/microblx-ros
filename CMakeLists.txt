@@ -12,7 +12,7 @@ find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(ROSCPP REQUIRED roscpp)
 pkg_check_modules(KDL REQUIRED orocos-kdl>=1.4.0)
-pkg_check_modules(UBX REQUIRED kdlubx)
+pkg_check_modules(UBX REQUIRED ubxkdl)
 pkg_check_modules(UBX REQUIRED ubx0>=0.8.0)
 pkg_get_variable(UBX_MODDIR ubx0 UBX_MODDIR)
 
