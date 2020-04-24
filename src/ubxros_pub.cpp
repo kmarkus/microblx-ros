@@ -43,6 +43,10 @@ struct ubxros_info
     ubx_port_t *p_pub;
 };
 
+/*
+ * Generic functions
+ */
+
 /* init */
 int ubxros_init(ubx_block_t *b)
 {
@@ -51,9 +55,6 @@ int ubxros_init(ubx_block_t *b)
 
     struct ubxros_info *inf;
 
-    /* allocate memory for the block local state */
-    // inf = static_cast<ubxros_info*>(calloc(1, sizeof(struct
-    // ubxros_info)));
     inf = new ubxros_info();
 
     if (inf == NULL) {
@@ -163,10 +164,11 @@ void ubxros_cleanup(ubx_block_t *b)
 }
 
 /* step */
+template <typename T, long(*rd)(const ubx_port_t*,int32_t*)>
 void ubxros_step(ubx_block_t *b)
 {
     long len;
-    std_msgs::Int32 msg;
+    T msg;
 
     struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
 
@@ -174,7 +176,7 @@ void ubxros_step(ubx_block_t *b)
     ros::spinOnce();
 
     // publish data
-    len = read_int32(inf->p_pub, &msg.data);
+    len = rd(inf->p_pub, &msg.data);
 
     if(len > 0) {
         inf->pub.publish(msg);
@@ -184,6 +186,9 @@ void ubxros_step(ubx_block_t *b)
         ubx_err(b, "failed to read toros port");
     }
 }
+
+// template void ubxros_step<std_msgs::Int32, ;
+
 
 /* put everything together */
 ubx_block_t ubxros_block = {
@@ -199,7 +204,7 @@ ubx_block_t ubxros_block = {
     .start = ubxros_start,
     .stop = ubxros_stop,
     .cleanup = ubxros_cleanup,
-    .step = ubxros_step,
+    .step = ubxros_step<std_msgs::Int32, &read_int32>,
 };
 
 int ubxros_mod_init(ubx_node_info_t* ni)
