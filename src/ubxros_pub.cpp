@@ -8,7 +8,16 @@
 #include <ubxkdl.hpp>
 #include <ros/ros.h>
 #include <std_msgs/Int32.h>
+#include <std_msgs/Int64.h>
 #include <kdl_conversions/kdl_msg.h>
+
+gen_class_accessors(char, char, char);
+gen_class_accessors(int8, int8_t, int8_t);
+gen_class_accessors(int32, int32_t, int32_t);
+gen_class_accessors(int64, int64_t, int64_t);
+gen_class_accessors(uint8, uint8_t, uint8_t);
+gen_class_accessors(uint32, uint32_t, uint32_t);
+gen_class_accessors(uint64, uint64_t, uint64_t);
 
 /* block meta information */
 char ubxros_meta[] =
@@ -110,6 +119,7 @@ out:
 }
 
 /* start */
+template <typename T>
 int ubxros_start(ubx_block_t *b)
 {
     const uint32_t *queue_size;
@@ -134,7 +144,7 @@ int ubxros_start(ubx_block_t *b)
     ubx_debug(b, "pub topic: %s, queue_size: %ul, latch: %s",
               inf->topic, inf->queue_size, (inf->latch==0) ? "false":"true");
 
-    inf->pub = inf->nh->advertise<std_msgs::Int32>(inf->topic, inf->queue_size, inf->latch);
+    inf->pub = inf->nh->advertise<T>(inf->topic, inf->queue_size, inf->latch);
 
     /* OK */
     return 0;
@@ -164,7 +174,7 @@ void ubxros_cleanup(ubx_block_t *b)
 }
 
 /* step */
-template <typename T, long(*rd)(const ubx_port_t*,int32_t*)>
+template <typename T>
 void ubxros_step(ubx_block_t *b)
 {
     long len;
@@ -176,7 +186,7 @@ void ubxros_step(ubx_block_t *b)
     ros::spinOnce();
 
     // publish data
-    len = rd(inf->p_pub, &msg.data);
+    len = portRead(inf->p_pub, &msg.data);
 
     if(len > 0) {
         inf->pub.publish(msg);
@@ -187,12 +197,9 @@ void ubxros_step(ubx_block_t *b)
     }
 }
 
-// template void ubxros_step<std_msgs::Int32, ;
-
-
 /* put everything together */
-ubx_block_t ubxros_block = {
-    .name = "ubxros",
+ubx_block_t rospub_int32 = {
+    .name = "rospub_int32",
     .meta_data = ubxros_meta,
     .type = BLOCK_TYPE_COMPUTATION,
 
@@ -201,20 +208,36 @@ ubx_block_t ubxros_block = {
 
     /* ops */
     .init = ubxros_init,
-    .start = ubxros_start,
+    .start = ubxros_start<std_msgs::Int32>,
     .stop = ubxros_stop,
     .cleanup = ubxros_cleanup,
-    .step = ubxros_step<std_msgs::Int32, &read_int32>,
+    .step = ubxros_step<std_msgs::Int32>,
+};
+
+ubx_block_t rospub_int64 = {
+    .name = "rospub_int64", .meta_data = ubxros_meta, .type = BLOCK_TYPE_COMPUTATION,
+
+    .ports = ubxros_ports,
+    .configs = ubxros_config,
+
+    /* ops */
+    .init = ubxros_init,
+    .start = ubxros_start<std_msgs::Int64>,
+    .stop = ubxros_stop,
+    .cleanup = ubxros_cleanup,
+    .step = ubxros_step<std_msgs::Int64>,
 };
 
 int ubxros_mod_init(ubx_node_info_t* ni)
 {
-    return ubx_block_register(ni, &ubxros_block);
+    return (ubx_block_register(ni, &rospub_int32) ||
+            ubx_block_register(ni, &rospub_int64));
 }
 
 void ubxros_mod_cleanup(ubx_node_info_t *ni)
 {
-    ubx_block_unregister(ni, "ubxros");
+    ubx_block_unregister(ni, "rospub_int32");
+    ubx_block_unregister(ni, "rospub_int64");
 }
 
 UBX_MODULE_INIT(ubxros_mod_init)

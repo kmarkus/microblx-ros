@@ -10,6 +10,14 @@
 #include <std_msgs/Int32.h>
 #include <kdl_conversions/kdl_msg.h>
 
+gen_class_accessors(char, char, char);
+gen_class_accessors(int8, int8_t, int8_t);
+gen_class_accessors(int32, int32_t, int32_t);
+gen_class_accessors(int64, int64_t, int64_t);
+gen_class_accessors(uint8, uint8_t, uint8_t);
+gen_class_accessors(uint32, uint32_t, uint32_t);
+gen_class_accessors(uint64, uint64_t, uint64_t);
+
 /* block meta information */
 char ubxros_meta[] =
     " { doc='A mixed port block geometry_msg/Vector3' block,"
@@ -119,7 +127,7 @@ int ubxros_start(ubx_block_t *b)
         inf->topic, 10,
         [b,inf](const std_msgs::Int32ConstPtr& msg) {
             ubx_debug(b, "received %i", msg->data);
-            write_int32(inf->p_sub, &msg->data);
+            portWrite(inf->p_sub, &msg->data);
         });
     /* OK */
     ret = 0;
