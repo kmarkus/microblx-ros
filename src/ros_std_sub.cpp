@@ -2,42 +2,28 @@
  * ROS mixed port connector
  */
 
-#define UBX_DEBUG
-
-#include <ubx/ubx.h>
-#include <ubxkdl.hpp>
-#include <ros/ros.h>
-#include <std_msgs/Int32.h>
-#include <kdl_conversions/kdl_msg.h>
-
-gen_class_accessors(char, char, char);
-gen_class_accessors(int8, int8_t, int8_t);
-gen_class_accessors(int32, int32_t, int32_t);
-gen_class_accessors(int64, int64_t, int64_t);
-gen_class_accessors(uint8, uint8_t, uint8_t);
-gen_class_accessors(uint32, uint32_t, uint32_t);
-gen_class_accessors(uint64, uint64_t, uint64_t);
+#include "ros_std.hpp"
 
 /* block meta information */
-char ubxros_meta[] =
+char ros_meta[] =
     " { doc='A mixed port block geometry_msg/Vector3' block,"
     "   realtime=false,"
     "}";
 
 /* declaration of block configuration */
-ubx_config_t ubxros_config[] = {
+ubx_config_t ros_config[] = {
     { .name="topic", .doc="ROS topic too subcribe to", .type_name = "char" },
     { 0 },
 };
 
 /* declaration port block ports */
-ubx_port_t ubxros_ports[] = {
+ubx_port_t ros_ports[] = {
     { .name="sub", .doc="data read from subscribed topic", .out_type_name="int32_t" },
     { 0 },
 };
 
 /* instance state */
-struct ubxros_info
+struct ros_info
 {
     ros::NodeHandle *nh;
     ros::Subscriber sub;
@@ -48,15 +34,15 @@ struct ubxros_info
 };
 
 /* init */
-int ubxros_init(ubx_block_t *b)
+int ros_init(ubx_block_t *b)
 {
     int ret = -1;
     long len;
 
-    struct ubxros_info *inf;
+    struct ros_info *inf;
 
     /* allocate memory for the block local state */
-    inf = new ubxros_info();
+    inf = new ros_info();
 
     if (inf == NULL) {
         ubx_err(b, "myblock: failed to alloc memory");
@@ -112,10 +98,10 @@ out:
 }
 
 /* start */
-int ubxros_start(ubx_block_t *b)
+int ros_start(ubx_block_t *b)
 {
     int ret = -1;
-    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
+    struct ros_info *inf = (struct ros_info*) b->private_data;
 
     if (!ros::ok()) {
         ubx_err(b, "ROS node not initialized or shutting down");
@@ -136,17 +122,17 @@ out:
 }
 
 /* stop */
-void ubxros_stop(ubx_block_t *b)
+void ros_stop(ubx_block_t *b)
 {
-    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
+    struct ros_info *inf = (struct ros_info*) b->private_data;
     ubx_debug(b, "shutting down topic %s", inf->topic);
     inf->sub.shutdown();
 }
 
 /* cleanup */
-void ubxros_cleanup(ubx_block_t *b)
+void ros_cleanup(ubx_block_t *b)
 {
-    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
+    struct ros_info *inf = (struct ros_info*) b->private_data;
 
     ubx_info(b, "shutting down ROS node %s", ros::this_node::getName().c_str());
 
@@ -159,7 +145,7 @@ void ubxros_cleanup(ubx_block_t *b)
 }
 
 /* step */
-void ubxros_step(ubx_block_t *b)
+void ros_step(ubx_block_t *b)
 {
     (void)b;
 
@@ -167,32 +153,32 @@ void ubxros_step(ubx_block_t *b)
 }
 
 /* put everything together */
-ubx_block_t ubxros_block = {
+ubx_block_t ros_block = {
     .name = "ubxros",
-    .meta_data = ubxros_meta,
+    .meta_data = ros_meta,
     .type = BLOCK_TYPE_COMPUTATION,
 
-    .ports = ubxros_ports,
-    .configs = ubxros_config,
+    .ports = ros_ports,
+    .configs = ros_config,
 
     /* ops */
-    .init = ubxros_init,
-    .start = ubxros_start,
-    .stop = ubxros_stop,
-    .cleanup = ubxros_cleanup,
-    .step = ubxros_step,
+    .init = ros_init,
+    .start = ros_start,
+    .stop = ros_stop,
+    .cleanup = ros_cleanup,
+    .step = ros_step,
 };
 
-int ubxros_mod_init(ubx_node_info_t* ni)
+int ros_mod_init(ubx_node_info_t* ni)
 {
-    return ubx_block_register(ni, &ubxros_block);
+    return ubx_block_register(ni, &ros_block);
 }
 
-void ubxros_mod_cleanup(ubx_node_info_t *ni)
+void ros_mod_cleanup(ubx_node_info_t *ni)
 {
     ubx_block_unregister(ni, "ubxros");
 }
 
-UBX_MODULE_INIT(ubxros_mod_init)
-UBX_MODULE_CLEANUP(ubxros_mod_cleanup)
+UBX_MODULE_INIT(ros_mod_init)
+UBX_MODULE_CLEANUP(ros_mod_cleanup)
 UBX_MODULE_LICENSE_SPDX(MIT)

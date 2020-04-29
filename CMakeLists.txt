@@ -16,36 +16,23 @@ pkg_check_modules(UBX REQUIRED ubxkdl)
 pkg_check_modules(UBX REQUIRED ubx0>=0.8.0)
 pkg_get_variable(UBX_MODDIR ubx0 UBX_MODDIR)
 
-# pub
-add_library(ubxros_sub SHARED src/ubxros_sub.cpp)
+# ros_std
+add_library(ros_std SHARED src/ros_std.hpp src/ros_std.cpp src/ros_std_pub.cpp src/ros_std_sub.cpp)
 
-set_target_properties(ubxros_sub PROPERTIES
+set_target_properties(ros_std PROPERTIES
   INSTALL_RPATH_USE_LINK_PATH TRUE
   PREFIX "")
 
-target_compile_options(ubxros_sub PUBLIC
+target_compile_options(ros_std PUBLIC
   "${UBX_CFLAGS} ${ROS_CFLAGS} ${KDL_CFLAGS}"
-  -Wall -Wextra -Werror -fvisibility=hidden
+  -Wall -Wextra -Werror
   -Wno-missing-field-initializers
+  -fvisibility=hidden
   )
 
-target_link_libraries(ubxros_sub ${UBX_LDFLAGS} ${ROSCPP_LDFLAGS})
+target_link_libraries(ros_std ${UBX_LDFLAGS} ${ROSCPP_LDFLAGS})
 
-install(TARGETS ubxros_sub DESTINATION ${UBX_MODDIR})
+install(TARGETS ros_std DESTINATION ${UBX_MODDIR})
 
-# sub
-add_library(ubxros_pub SHARED src/ubxros_pub.cpp)
 
-set_target_properties(ubxros_pub PROPERTIES
-  INSTALL_RPATH_USE_LINK_PATH TRUE
-  PREFIX "")
-
-target_compile_options(ubxros_pub PUBLIC
-  "${UBX_CFLAGS} ${ROS_CFLAGS} ${KDL_CFLAGS}"
-  -Wall -Wextra -Werror -fvisibility=hidden
-  -Wno-missing-field-initializers
-  )
-
-target_link_libraries(ubxros_pub ${UBX_LDFLAGS} ${ROSCPP_LDFLAGS})
-
-install(TARGETS ubxros_pub DESTINATION ${UBX_MODDIR})
+# ros_kdl

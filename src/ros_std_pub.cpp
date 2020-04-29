@@ -2,31 +2,16 @@
  * ROS mixed port connector
  */
 
-#define UBX_DEBUG
-
-#include <ubx/ubx.h>
-#include <ubxkdl.hpp>
-#include <ros/ros.h>
-#include <std_msgs/Int32.h>
-#include <std_msgs/Int64.h>
-#include <kdl_conversions/kdl_msg.h>
-
-gen_class_accessors(char, char, char);
-gen_class_accessors(int8, int8_t, int8_t);
-gen_class_accessors(int32, int32_t, int32_t);
-gen_class_accessors(int64, int64_t, int64_t);
-gen_class_accessors(uint8, uint8_t, uint8_t);
-gen_class_accessors(uint32, uint32_t, uint32_t);
-gen_class_accessors(uint64, uint64_t, uint64_t);
+#include "ros_std.hpp"
 
 /* block meta information */
-static char ubxros_meta[] =
+char ros_meta[] =
     " { doc='A mixed port block geometry_msg/Vector3' block,"
     "   realtime=false,"
     "}";
 
 /* declaration of block configuration */
-static ubx_config_t ubxros_config[] = {
+ubx_config_t ros_config[] = {
     { .name="topic", .doc="ROS topic to publish to", .type_name = "char" },
     { .name="queue_size", .doc="outgoing message queue size", .type_name = "unsigned int" },
     { .name="latch", .doc="save message and send to future subscribers", .type_name = "int" },
@@ -34,13 +19,13 @@ static ubx_config_t ubxros_config[] = {
 };
 
 /* declaration port block ports */
-static ubx_port_t ubxros_ports[] = {
+ubx_port_t ros_ports[] = {
     { .name="pub", .doc="data to publish to topic", .in_type_name="int32_t" },
     { 0 },
 };
 
 /* instance state */
-struct ubxros_info
+struct ros_info
 {
     ros::NodeHandle *nh;
     ros::Publisher pub;
@@ -57,14 +42,14 @@ struct ubxros_info
  */
 
 /* init */
-static int ubxros_init(ubx_block_t *b)
+int ros_init(ubx_block_t *b)
 {
     int ret = -1;
     long len;
 
-    struct ubxros_info *inf;
+    struct ros_info *inf;
 
-    inf = new ubxros_info();
+    inf = new ros_info();
 
     if (inf == NULL) {
         ubx_err(b, "myblock: failed to alloc memory");
@@ -118,15 +103,38 @@ out:
     return ret;
 }
 
+/* stop */
+void ros_stop(ubx_block_t *b)
+{
+    struct ros_info *inf = (struct ros_info*) b->private_data;
+    ubx_debug(b, "shutting down pub topic %s", inf->topic);
+    inf->pub.shutdown();
+}
+
+/* cleanup */
+void ros_cleanup(ubx_block_t *b)
+{
+    struct ros_info *inf = (struct ros_info*) b->private_data;
+
+    ubx_info(b, "shutting down ROS node %s", ros::this_node::getName().c_str());
+
+    delete(inf->nh);
+    delete(inf);
+
+    ros::shutdown();
+
+    return;
+}
+
 /* start */
 template <typename T>
-static int ubxros_start(ubx_block_t *b)
+int ros_start(ubx_block_t *b)
 {
     const uint32_t *queue_size;
     const int *latch;
     long len;
 
-    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
+    struct ros_info *inf = (struct ros_info*) b->private_data;
 
     if (!ros::ok()) {
         ubx_err(b, "ROS node not initialized or shutting down");
@@ -150,43 +158,21 @@ static int ubxros_start(ubx_block_t *b)
     return 0;
 }
 
-/* stop */
-static void ubxros_stop(ubx_block_t *b)
-{
-    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
-    ubx_debug(b, "shutting down pub topic %s", inf->topic);
-    inf->pub.shutdown();
-}
-
-/* cleanup */
-static void ubxros_cleanup(ubx_block_t *b)
-{
-    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
-
-    ubx_info(b, "shutting down ROS node %s", ros::this_node::getName().c_str());
-
-    delete(inf->nh);
-    delete(inf);
-
-    ros::shutdown();
-
-    return;
-}
-
 /* step */
 template <typename T>
-static void ubxros_step(ubx_block_t *b)
+void ros_step(ubx_block_t *b)
 {
     long len;
     T msg;
 
-    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
+    struct ros_info *inf = (struct ros_info*) b->private_data;
 
     // process callbacks
+    // TODO really need this for pub?
     ros::spinOnce();
 
     // publish data
-    len = portRead(inf->p_pub, &msg.data);
+    len = portRead(inf->p_pub, &msg.data, 1);
 
     if(len > 0) {
         inf->pub.publish(msg);
@@ -198,35 +184,35 @@ static void ubxros_step(ubx_block_t *b)
 }
 
 /* put everything together */
-ubx_block_t pub_blocks[] =
+__attribute__ ((visibility("default"))) ubx_block_t pub_blocks[] =
 {
     {
-        .name = "rospub_int32",
-        .meta_data = ubxros_meta,
+        .name = "ros_int32_pub",
+        .meta_data = ros_meta,
         .type = BLOCK_TYPE_COMPUTATION,
-        .ports = ubxros_ports,
-        .configs = ubxros_config,
-        .init = ubxros_init,
-        .start = ubxros_start<std_msgs::Int32>,
-        .stop = ubxros_stop,
-        .cleanup = ubxros_cleanup,
-        .step = ubxros_step<std_msgs::Int32>,
+        .ports = ros_ports,
+        .configs = ros_config,
+        .init = ros_init,
+        .start = ros_start<std_msgs::Int32>,
+        .stop = ros_stop,
+        .cleanup = ros_cleanup,
+        .step = ros_step<std_msgs::Int32>,
     }, {
-        .name = "rospub_int64",
-        .meta_data = ubxros_meta,
+        .name = "ros_int64_pub",
+        .meta_data = ros_meta,
         .type = BLOCK_TYPE_COMPUTATION,
-        .ports = ubxros_ports,
-        .configs = ubxros_config,
-        .init = ubxros_init,
-        .start = ubxros_start<std_msgs::Int64>,
-        .stop = ubxros_stop,
-        .cleanup = ubxros_cleanup,
-        .step = ubxros_step<std_msgs::Int64>,
+        .ports = ros_ports,
+        .configs = ros_config,
+        .init = ros_init,
+        .start = ros_start<std_msgs::Int64>,
+        .stop = ros_stop,
+        .cleanup = ros_cleanup,
+        .step = ros_step<std_msgs::Int64>,
     }
 };
 
 
-int ubxros_mod_init(ubx_node_info_t* ni)
+int ros_mod_init(ubx_node_info_t* ni)
 {
     int ret = 0;
 
@@ -236,7 +222,7 @@ int ubxros_mod_init(ubx_node_info_t* ni)
     return ret;
 }
 
-void ubxros_mod_cleanup(ubx_node_info_t *ni)
+void ros_mod_cleanup(ubx_node_info_t *ni)
 {
 
     for(unsigned long i = 0; i < ARRAY_SIZE(pub_blocks); i++)
@@ -244,6 +230,6 @@ void ubxros_mod_cleanup(ubx_node_info_t *ni)
 
 }
 
-UBX_MODULE_INIT(ubxros_mod_init)
-UBX_MODULE_CLEANUP(ubxros_mod_cleanup)
+UBX_MODULE_INIT(ros_mod_init)
+UBX_MODULE_CLEANUP(ros_mod_cleanup)
 UBX_MODULE_LICENSE_SPDX(MIT)
