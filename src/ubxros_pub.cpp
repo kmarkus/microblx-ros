@@ -20,13 +20,13 @@ gen_class_accessors(uint32, uint32_t, uint32_t);
 gen_class_accessors(uint64, uint64_t, uint64_t);
 
 /* block meta information */
-char ubxros_meta[] =
+static char ubxros_meta[] =
     " { doc='A mixed port block geometry_msg/Vector3' block,"
     "   realtime=false,"
     "}";
 
 /* declaration of block configuration */
-ubx_config_t ubxros_config[] = {
+static ubx_config_t ubxros_config[] = {
     { .name="topic", .doc="ROS topic to publish to", .type_name = "char" },
     { .name="queue_size", .doc="outgoing message queue size", .type_name = "unsigned int" },
     { .name="latch", .doc="save message and send to future subscribers", .type_name = "int" },
@@ -34,7 +34,7 @@ ubx_config_t ubxros_config[] = {
 };
 
 /* declaration port block ports */
-ubx_port_t ubxros_ports[] = {
+static ubx_port_t ubxros_ports[] = {
     { .name="pub", .doc="data to publish to topic", .in_type_name="int32_t" },
     { 0 },
 };
@@ -57,7 +57,7 @@ struct ubxros_info
  */
 
 /* init */
-int ubxros_init(ubx_block_t *b)
+static int ubxros_init(ubx_block_t *b)
 {
     int ret = -1;
     long len;
@@ -120,7 +120,7 @@ out:
 
 /* start */
 template <typename T>
-int ubxros_start(ubx_block_t *b)
+static int ubxros_start(ubx_block_t *b)
 {
     const uint32_t *queue_size;
     const int *latch;
@@ -151,7 +151,7 @@ int ubxros_start(ubx_block_t *b)
 }
 
 /* stop */
-void ubxros_stop(ubx_block_t *b)
+static void ubxros_stop(ubx_block_t *b)
 {
     struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
     ubx_debug(b, "shutting down pub topic %s", inf->topic);
@@ -159,7 +159,7 @@ void ubxros_stop(ubx_block_t *b)
 }
 
 /* cleanup */
-void ubxros_cleanup(ubx_block_t *b)
+static void ubxros_cleanup(ubx_block_t *b)
 {
     struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
 
@@ -175,7 +175,7 @@ void ubxros_cleanup(ubx_block_t *b)
 
 /* step */
 template <typename T>
-void ubxros_step(ubx_block_t *b)
+static void ubxros_step(ubx_block_t *b)
 {
     long len;
     T msg;
@@ -198,46 +198,50 @@ void ubxros_step(ubx_block_t *b)
 }
 
 /* put everything together */
-ubx_block_t rospub_int32 = {
-    .name = "rospub_int32",
-    .meta_data = ubxros_meta,
-    .type = BLOCK_TYPE_COMPUTATION,
-
-    .ports = ubxros_ports,
-    .configs = ubxros_config,
-
-    /* ops */
-    .init = ubxros_init,
-    .start = ubxros_start<std_msgs::Int32>,
-    .stop = ubxros_stop,
-    .cleanup = ubxros_cleanup,
-    .step = ubxros_step<std_msgs::Int32>,
+ubx_block_t pub_blocks[] =
+{
+    {
+        .name = "rospub_int32",
+        .meta_data = ubxros_meta,
+        .type = BLOCK_TYPE_COMPUTATION,
+        .ports = ubxros_ports,
+        .configs = ubxros_config,
+        .init = ubxros_init,
+        .start = ubxros_start<std_msgs::Int32>,
+        .stop = ubxros_stop,
+        .cleanup = ubxros_cleanup,
+        .step = ubxros_step<std_msgs::Int32>,
+    }, {
+        .name = "rospub_int64",
+        .meta_data = ubxros_meta,
+        .type = BLOCK_TYPE_COMPUTATION,
+        .ports = ubxros_ports,
+        .configs = ubxros_config,
+        .init = ubxros_init,
+        .start = ubxros_start<std_msgs::Int64>,
+        .stop = ubxros_stop,
+        .cleanup = ubxros_cleanup,
+        .step = ubxros_step<std_msgs::Int64>,
+    }
 };
 
-ubx_block_t rospub_int64 = {
-    .name = "rospub_int64", .meta_data = ubxros_meta, .type = BLOCK_TYPE_COMPUTATION,
-
-    .ports = ubxros_ports,
-    .configs = ubxros_config,
-
-    /* ops */
-    .init = ubxros_init,
-    .start = ubxros_start<std_msgs::Int64>,
-    .stop = ubxros_stop,
-    .cleanup = ubxros_cleanup,
-    .step = ubxros_step<std_msgs::Int64>,
-};
 
 int ubxros_mod_init(ubx_node_info_t* ni)
 {
-    return (ubx_block_register(ni, &rospub_int32) ||
-            ubx_block_register(ni, &rospub_int64));
+    int ret = 0;
+
+    for(unsigned long i = 0; i < ARRAY_SIZE(pub_blocks); i++)
+        ret |= ubx_block_register(ni, &pub_blocks[i]);
+
+    return ret;
 }
 
 void ubxros_mod_cleanup(ubx_node_info_t *ni)
 {
-    ubx_block_unregister(ni, "rospub_int32");
-    ubx_block_unregister(ni, "rospub_int64");
+
+    for(unsigned long i = 0; i < ARRAY_SIZE(pub_blocks); i++)
+        ubx_block_unregister(ni, pub_blocks[i].name);
+
 }
 
 UBX_MODULE_INIT(ubxros_mod_init)
