@@ -11,7 +11,7 @@
 #include "types/ubxros_conn.h.hexarr"
 
 /* types */
-#include <ros_kdl.hpp>
+#include "ros_kdl.hpp"
 #include "ros_std.hpp"
 
 /* block meta information */

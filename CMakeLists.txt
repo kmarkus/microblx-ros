@@ -45,7 +45,8 @@ set_target_properties(ubxros PROPERTIES
   PREFIX "")
 
 target_compile_options(ubxros PUBLIC
-  "${UBX_CFLAGS} ${ROS_CFLAGS} ${KDL_CFLAGS} -I${hexarr_outdir}"
+  ${UBX_CFLAGS} ${ROS_CFLAGS} ${KDL_CFLAGS}
+  -I${hexarr_outdir}
   -Wall -Wextra -Werror
   -Wno-missing-field-initializers
   -fvisibility=hidden
