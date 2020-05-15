@@ -1,0 +1,39 @@
+
+return bd.system
+{
+   imports = {
+      "stdtypes", "lfds_cyclic", "ubxros",
+   },
+
+   blocks = {
+      { name="rosbridge_1", type="ubxros" },
+      { name="ramp_1", type="ramp_int32" },
+      { name="ptrig_1", type="std_triggers/ptrig" },
+   },
+
+   configurations = {
+      { name="rosbridge_1",
+	config = {
+	   { topic = "pub_int", dir='P', ubx_type="int" },
+	   { topic = "sub_int_", dir='S', ubx_type="int" },
+	   { topic = "pub_frame", dir='P', ubx_type="kdl_frame" },
+	   { topic = "sub_frame", dir='S', ubx_type="kdl_frame" },
+	}
+      },
+      { name="ramp_1", config = { slope=1, start=0 } },
+      { name="ptrig_1", config = {
+	   period = {sec=0, usec=100000 },
+	   tstats_mode=1,
+	   tstats_profile_path="/tmp/ptrig_1.tstats",
+	   trig_blocks={
+	      { b="#ramp_1", num_steps=1 },
+	      { b="#rosbridge_1", num_steps=1 }
+	   } }
+      },
+   },
+
+   connections = {
+      { src="ramp_1.out", tgt="rosbridge_1.pub_int" },
+      --
+   },
+}
