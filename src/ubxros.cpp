@@ -74,6 +74,7 @@ struct ubxros_info
 {
     ros::NodeHandle *nh;
     const struct ubxros_conn *conns; /* ROS connections */
+    long conns_len;
 };
 
 
@@ -122,13 +123,42 @@ struct ubxros_handler handlers [] = {
 };
 
 
+int check_connections(ubx_block_t *b)
+{
+    int ret = 0;
+
+    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
+
+    if (inf->conns_len == 0)
+        ubx_warn(b, "no connections configured");
+
+    for (long i=0; i<inf->conns_len; i++) {
+        const char dir = toupper(inf->conns[i].dir);
+        const char *ubx_type = inf->conns[i].ubx_type;
+
+        if (dir != 'P' && dir != 'S') {
+            ubx_err(b, "EINVALID_CONFIG: invalid dir %c of connection %li",
+                    inf->conns[i].dir, i);
+            ret = EINVALID_CONFIG;
+        }
+
+        if (ubx_type_get(b->ni, ubx_type) == NULL) {
+            ubx_err(b, "EINVALID_TYPE: %s in connection %li", ubx_type, i);
+            ret = EINVALID_TYPE;
+        }
+
+        if (dir == 'S' && inf->conns[i].latch != 0) {
+            ubx_warn(b, "EINVALID_CONFIG: setting latch in SUB connection %li has no effect", i);
+        }
+    }
+
+    return ret;
+}
 
 
 static int ubxros_init(ubx_block_t *b)
 {
     int ret = -1;
-    long len;
-
     struct ubxros_info *inf;
 
     inf = new ubxros_info();
@@ -141,11 +171,13 @@ static int ubxros_init(ubx_block_t *b)
 
     b->private_data = inf;
 
-    len = cfg_getptr_ubxros_conn(b, CONNECTIONS, &inf->conns);
-    assert(len>0);
+    inf->conns_len = cfg_getptr_ubxros_conn(b, CONNECTIONS, &inf->conns);
+    assert(inf->conns_len > 0);
 
-    if (len == 0)
-        ubx_warn(b, "config connections unset");
+    ret = check_connections(b);
+
+    if (ret != 0)
+        goto out_free;
 
     /* need to create node? */
     if (!ros::isInitialized()) {
