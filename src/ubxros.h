@@ -1,12 +1,14 @@
 #define UBX_DEBUG
 
 #include <ubx/ubx.h>
+#include <ubxkdl.hpp>
 
 #include <ros/ros.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/Int64.h>
 #include <std_msgs/UInt32.h>
 #include <std_msgs/UInt64.h>
+#include <geometry_msgs/Vector3.h>
 
 #include "types/ubxros_conn.h"
 #include "types/ubxros_conn.h.hexarr"

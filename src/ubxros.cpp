@@ -1,5 +1,6 @@
 
 #include "ubxros.h"
+#include <kdl_conversions/kdl_msg.h>
 
 // types
 #include "ros_kdl.hpp"
@@ -52,6 +53,30 @@ pubFunc makeInt32Pub(ros::NodeHandle *nh,
            };
 }
 
+//
+// KDL types
+//
+ros::Subscriber makeKDLVectorSub(ros::NodeHandle *nh,
+                                 const struct ubxros_conn *uc,
+                                 const ubx_port_t *p_sub)
+{
+    assert(nh != NULL);
+    assert(uc != NULL);
+    assert(p_sub != NULL);
+
+    return nh->subscribe<geometry_msgs::Vector3>(
+        uc->topic,
+        uc->queue_size,
+        [p_sub](const geometry_msgs::Vector3ConstPtr& msg) {
+            KDL::Vector v;
+            ubx_debug(p_sub->block, "received Vector3 x=%f,y=%f,z=%f, ",
+                      msg->x, msg->y, msg->z);
+            tf::vectorMsgToKDL(*msg, v);
+            portWrite(p_sub, &v, 1);
+        });
+
+}
+
 
 struct ubxros_handler handlers [] = {
     {
@@ -59,7 +84,12 @@ struct ubxros_handler handlers [] = {
         .ubx_type = "int32_t",
         .subfact = makeInt32Sub,
         .pubfact = makeInt32Pub
-    },
+    }, {
+        .ros_type = "geomety_msgs/Vector3",
+        .ubx_type = "struct kdl_vector",
+        .subfact = makeKDLVectorSub,
+        .pubfact = NULL,
+    }
 };
 
 const struct ubxros_handler* get_handler(const char* type)
