@@ -9,7 +9,7 @@ enum {
 /* description of one microblx to ROS connection */
 struct ubxros_conn {
 	char topic[ROS_TOPIC_MAXLEN];
-	char dir;
+	char dir[1+1];
 	char ubx_type[TYPE_NAME_MAXLEN];
 
 	uint32_t queue_size;

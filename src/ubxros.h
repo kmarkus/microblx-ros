@@ -1,3 +1,4 @@
+#define UBX_DEBUG
 
 #include <ubx/ubx.h>
 

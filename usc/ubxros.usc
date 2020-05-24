@@ -1,8 +1,7 @@
-
 return bd.system
 {
    imports = {
-      "stdtypes", "lfds_cyclic", "ubxros",
+      "stdtypes", "ptrig", "lfds_cyclic", "ubxros", "ramp_int32",
    },
 
    blocks = {
@@ -14,10 +13,12 @@ return bd.system
    configurations = {
       { name="rosbridge_1",
 	config = {
-	   { topic = "pub_int", dir='P', ubx_type="int" },
-	   { topic = "sub_int_", dir='S', ubx_type="int" },
-	   { topic = "pub_frame", dir='P', ubx_type="kdl_frame" },
-	   { topic = "sub_frame", dir='S', ubx_type="kdl_frame" },
+	   connections = {
+	      { topic = "pub_int", dir='P', ubx_type="int32_t" },
+	      { topic = "sub_int", dir='S', ubx_type="int32_t" },
+	      -- { topic = "pub_frame", dir='P', ubx_type="kdl_frame" },
+	      -- { topic = "sub_frame", dir='S', ubx_type="kdl_frame" },
+	   }
 	}
       },
       { name="ramp_1", config = { slope=1, start=0 } },

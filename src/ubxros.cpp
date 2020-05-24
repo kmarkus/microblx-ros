@@ -14,11 +14,15 @@ ros::Subscriber makeInt32Sub(ros::NodeHandle *nh,
                              const struct ubxros_conn *uc,
                              const ubx_port_t *p_sub)
 {
+    assert(nh != NULL);
+    assert(uc != NULL);
+    assert(p_sub != NULL);
+
     return nh->subscribe<std_msgs::Int32>(
         uc->topic,
         uc->queue_size,
         [p_sub](const std_msgs::Int32ConstPtr& msg) {
-            ubx_debug(o_sub->block, "received %i", msg->data);
+            ubx_debug(p_sub->block, "received %i", msg->data);
             portWrite(p_sub, &msg->data, 1);
         });
 }
@@ -29,16 +33,22 @@ pubFunc makeInt32Pub(ros::NodeHandle *nh,
 {
     ros::Publisher pub = nh->advertise<std_msgs::Int32>(uc->topic, uc->queue_size, uc->latch);
 
-    return [&p_pub,pub]() {
+    assert(nh != NULL);
+    assert(uc != NULL);
+    assert(p_pub != NULL);
+
+    return [p_pub,uc,pub]() {
                std_msgs::Int32 msg;
                int len = portRead(p_pub, &msg.data, 1);
 
-               if(len > 0)
+               if(len > 0) {
+                   ubx_debug(p_pub->block, "publishing %i on topic %s", msg.data, uc->topic);
                    pub.publish(msg);
-               else if (len == 0)
-                   ubx_debug(p_pub->block, "no new data");
-               else
+               } else if (len == 0) {
+                   ubx_debug(p_pub->block, "no new data on topic %s", uc->topic);
+               } else {
                    ubx_err(p_pub->block, "failed to read port %s", p_pub->name);
+               }
            };
 }
 
@@ -71,7 +81,7 @@ int check_connections(ubx_block_t *b)
         ubx_warn(b, "no connections configured");
 
     for (long i=0; i<inf->conn_len; i++) {
-        const char dir = inf->conn_cfg[i].dir;
+        const char dir = inf->conn_cfg[i].dir[0];
         const char *ubx_type = inf->conn_cfg[i].ubx_type;
         const char *topic = inf->conn_cfg[i].topic;
         const struct ubxros_handler* handler;
@@ -94,8 +104,7 @@ int check_connections(ubx_block_t *b)
         }
 
         if (dir != 'P' && dir != 'S') {
-            ubx_err(b, "EINVALID_CONFIG: invalid dir %c of connection %li",
-                    inf->conn_cfg[i].dir, i);
+            ubx_err(b, "EINVALID_CONFIG: invalid dir %c of connection %li", dir, i);
             ret = EINVALID_CONFIG;
         }
 
@@ -113,6 +122,7 @@ int ubxros_init(ubx_block_t *b)
 {
     int ret = -1;
     struct ubxros_info *inf;
+    char docstr[DOCSTR_MAXLEN];
 
     try {
         inf = new ubxros_info();
@@ -153,15 +163,46 @@ int ubxros_init(ubx_block_t *b)
         goto out_free;
     }
 
-    /* ensure a ROS master is running */
+    // ensure a ROS master is running
     if (!ros::master::check()) {
         ubx_err(b, "no ROS master found");
         goto out_free;
     }
 
+    // create ports
+    for (int i=0; i<inf->conn_len; i++) {
+        const char dir = inf->conn_cfg[i].dir[0];
+        const char *ubx_type = inf->conn_cfg[i].ubx_type;
+        const char *topic = inf->conn_cfg[i].topic;
+
+        if (dir == 'P') {
+            snprintf(docstr, DOCSTR_MAXLEN, "in-port to publish on topic %s", topic);
+
+            if (ubx_inport_add(b, topic, docstr, ubx_type, 1))
+                goto out_rmports;
+
+            ubx_debug(b, "added inport %s", topic);
+
+        } else if (dir == 'S') {
+            snprintf(docstr, DOCSTR_MAXLEN, "out-port with data from topic %s", topic);
+
+            if (ubx_outport_add(b, topic, docstr, ubx_type, 1))
+                goto out_rmports;
+
+            ubx_debug(b, "added outport %s", topic);
+        }
+    }
+
     /* all good */
     ret=0;
     goto out;
+
+out_rmports:
+    for (int i=0; i<inf->conn_len; i++) {
+        const char *topic = inf->conn_cfg[i].topic;
+        if(ubx_port_get(b, topic) != 0)
+            ubx_port_rm(b, topic);
+    }
 
 out_free:
     delete(inf);
@@ -172,8 +213,6 @@ out:
 // start
 int ubxros_start(ubx_block_t *b)
 {
-    char docstr[DOCSTR_MAXLEN];
-
     struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
 
     if (!ros::ok()) {
@@ -189,32 +228,15 @@ int ubxros_start(ubx_block_t *b)
         return EOUTOFMEM;
     }
 
-    // create ports, publishers and subscribers
+    // create publishers and subscribers
     for (int i=0; i<inf->conn_len; i++) {
-        const char dir = inf->conn_cfg[i].dir;
-        const char *ubx_type = inf->conn_cfg[i].ubx_type;
-        const char *topic = inf->conn_cfg[i].topic;
-
-        if (dir == 'P') {
-            snprintf(docstr, DOCSTR_MAXLEN, "in-port to publish on topic %s", topic);
-
-            if (ubx_inport_add(b, topic, docstr, ubx_type, 1))
-                goto out_fail;
-
-        } else if (dir == 'S') {
-            snprintf(docstr, DOCSTR_MAXLEN, "out-port with data from topic %s", topic);
-
-            if (ubx_outport_add(b, topic, docstr, ubx_type, 1))
-                goto out_fail;
-        }
-    }
-
-    for (int i=0; i<inf->conn_len; i++) {
-        const char dir = inf->conn_cfg[i].dir;
+        const char dir = inf->conn_cfg[i].dir[0];
         const char *ubx_type = inf->conn_cfg[i].ubx_type;
         const char *topic = inf->conn_cfg[i].topic;
         const ubxros_handler *handler = get_handler(ubx_type);
         const ubx_port_t *p = ubx_port_get(b, topic);
+
+        ubx_debug(b, "pub/sub creation: %p, %s", p, p->name);
 
         if (dir == 'P') {
             inf->conn_state[i].pub =
@@ -227,14 +249,6 @@ int ubxros_start(ubx_block_t *b)
 
     // OK
     return 0;
-
-out_fail:
-    for (int i=0; i<inf->conn_len; i++) {
-        const char *topic = inf->conn_cfg[i].topic;
-        if(ubx_port_get(b, topic) != 0)
-            ubx_port_rm(b, topic);
-    }
-    return -1;
 }
 
 // stop
@@ -244,7 +258,7 @@ void ubxros_stop(ubx_block_t *b)
 
     for (int i=0; i<inf->conn_len; i++) {
 
-        const char dir = inf->conn_cfg[i].dir;
+        const char dir = inf->conn_cfg[i].dir[0];
 
         if (dir == 'S')
             inf->conn_state[i].sub.shutdown();
@@ -253,7 +267,7 @@ void ubxros_stop(ubx_block_t *b)
         // function is deleted below.
     }
 
-    delete inf->conn_state;
+    delete[] inf->conn_state;
 
     // remove all added ports
     for (int i=0; i<inf->conn_len; i++)
@@ -287,7 +301,7 @@ void ubxros_step(ubx_block_t *b)
 
     // publish data
     for (int i=0; i<inf->conn_len; i++) {
-        if (inf->conn_cfg[i].dir == 'P')
+        if (inf->conn_cfg[i].dir[0] == 'P')
             inf->conn_state[i].pub();
     }
 }
