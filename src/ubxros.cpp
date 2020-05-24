@@ -1,85 +1,15 @@
 
-#include <ubx/ubx.h>
-
-#include <ros/ros.h>
-#include <std_msgs/Int32.h>
-#include <std_msgs/Int64.h>
-#include <std_msgs/UInt32.h>
-#include <std_msgs/UInt64.h>
-
-#include "types/ubxros_conn.h"
-#include "types/ubxros_conn.h.hexarr"
+#include "ubxros.h"
 
 // types
 #include "ros_kdl.hpp"
 #include "ros_std.hpp"
 
-// ubxros handlers
 
-typedef std::function<void ()> pubFunc;
-
-// this is used to declare the type that ubxros can handle for now
-// it's just a static compile time list. Could be extended to with
-// dynamic loadable plugins.
-
-struct ubxros_handler {
-    const char *ros_type;
-    const char *ubx_type;
-
-    // a factory for creating a Subscription to the topic described by
-    // uc. Will setup a callback for publishing received values on
-    // port p_sub
-    ros::Subscriber (*subfact)(ros::NodeHandle *nh,
-                               const struct ubxros_conn *uc,
-                               const ubx_port_t *p_sub);
-
-
-    // a factory for creating publisher functions. A publisher
-    // function is a thunk that will read from the given port and
-    // publish it onto the given topic.
-    pubFunc (*pubfact)(ros::NodeHandle *nh,
-                       const struct ubxros_conn *uc,
-                       const ubx_port_t *p_pub);
-
-};
 
 //
-// Block definitions
-//
-
-// block meta information
-static char ubxros_meta[] =
-    "{ doc='A generic mult-type bridge block to connect to ROS', realtime=false }";
-
-
-const char* CONNECTIONS = "connections";
-
-/* declaration of block configuration */
-static ubx_config_t ubxros_config[] = {
-    { .name=CONNECTIONS, .doc="microblx-ROS connections", .type_name = "struct ubxros_conn" },
-    { 0 },
-};
-
-// ubxros types and accessors
-ubx_type_t ubxros_types[] = {
-    def_struct_type(struct ubxros_conn, &ubxros_conn_h),
-    { 0 },
-};
-
-def_cfg_getptr_fun(cfg_getptr_ubxros_conn, struct ubxros_conn);
-
-
-// Block state
-struct ubxros_info
-{
-    ros::NodeHandle *nh;
-    const struct ubxros_conn *conns; /* ROS connections */
-    long conns_len;
-};
-
-
-
 // Concrete type handers
+//
 ros::Subscriber makeInt32Sub(ros::NodeHandle *nh,
                              const struct ubxros_conn *uc,
                              const ubx_port_t *p_sub)
@@ -122,6 +52,14 @@ struct ubxros_handler handlers [] = {
     },
 };
 
+const struct ubxros_handler* get_handler(const char* type)
+{
+    for (unsigned long i=0; i<ARRAY_SIZE(handlers); i++) {
+        if (strncmp(handlers[i].ubx_type, type, PORT_NAME_MAXLEN) == 0)
+            return &handlers[i];
+    }
+    return NULL;
+}
 
 int check_connections(ubx_block_t *b)
 {
@@ -129,25 +67,39 @@ int check_connections(ubx_block_t *b)
 
     struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
 
-    if (inf->conns_len == 0)
+    if (inf->conn_len == 0)
         ubx_warn(b, "no connections configured");
 
-    for (long i=0; i<inf->conns_len; i++) {
-        const char dir = toupper(inf->conns[i].dir);
-        const char *ubx_type = inf->conns[i].ubx_type;
-
-        if (dir != 'P' && dir != 'S') {
-            ubx_err(b, "EINVALID_CONFIG: invalid dir %c of connection %li",
-                    inf->conns[i].dir, i);
-            ret = EINVALID_CONFIG;
-        }
+    for (long i=0; i<inf->conn_len; i++) {
+        const char dir = inf->conn_cfg[i].dir;
+        const char *ubx_type = inf->conn_cfg[i].ubx_type;
+        const char *topic = inf->conn_cfg[i].topic;
+        const struct ubxros_handler* handler;
 
         if (ubx_type_get(b->ni, ubx_type) == NULL) {
             ubx_err(b, "EINVALID_TYPE: %s in connection %li", ubx_type, i);
             ret = EINVALID_TYPE;
         }
 
-        if (dir == 'S' && inf->conns[i].latch != 0) {
+        handler = get_handler(ubx_type);
+
+        if (!handler) {
+            ubx_err(b, "EINVALID_TYPE: no handler for type %s (topic %s)", ubx_type, topic);
+            ret = EINVALID_TYPE;
+        }
+
+        if (strnlen(topic, ROS_TOPIC_MAXLEN) == 0) {
+            ubx_err(b, "EINVALID_CONFIG: missing topic name for connection #%li", i);
+            ret = EINVALID_CONFIG;
+        }
+
+        if (dir != 'P' && dir != 'S') {
+            ubx_err(b, "EINVALID_CONFIG: invalid dir %c of connection %li",
+                    inf->conn_cfg[i].dir, i);
+            ret = EINVALID_CONFIG;
+        }
+
+        if (dir == 'S' && inf->conn_cfg[i].latch != 0) {
             ubx_warn(b, "EINVALID_CONFIG: setting latch in SUB connection %li has no effect", i);
         }
     }
@@ -156,23 +108,24 @@ int check_connections(ubx_block_t *b)
 }
 
 
-static int ubxros_init(ubx_block_t *b)
+// init
+int ubxros_init(ubx_block_t *b)
 {
     int ret = -1;
     struct ubxros_info *inf;
 
-    inf = new ubxros_info();
-
-    if (inf == NULL) {
-        ubx_err(b, "ubxros: failed to alloc memory");
-        ret = EOUTOFMEM;
-        goto out;
+    try {
+        inf = new ubxros_info();
+    }
+    catch (const std::bad_alloc& e) {
+        ubx_err(b, "ubxros: failed to alloc block state");
+        return EOUTOFMEM;
     }
 
     b->private_data = inf;
 
-    inf->conns_len = cfg_getptr_ubxros_conn(b, CONNECTIONS, &inf->conns);
-    assert(inf->conns_len > 0);
+    inf->conn_len = cfg_getptr_ubxros_conn(b, CONNECTIONS, &inf->conn_cfg);
+    assert(inf->conn_len > 0);
 
     ret = check_connections(b);
 
@@ -192,7 +145,13 @@ static int ubxros_init(ubx_block_t *b)
         ubx_info(b, "initialized ROS node %s", ros::this_node::getName().c_str());
     }
 
-    inf->nh = new ros::NodeHandle();
+    try {
+        inf->nh = new ros::NodeHandle();
+    } catch (const std::bad_alloc& e) {
+        ubx_err(b, "ubxros: failed to alloc NodeHandle");
+        ret = EOUTOFMEM;
+        goto out_free;
+    }
 
     /* ensure a ROS master is running */
     if (!ros::master::check()) {
@@ -210,36 +169,101 @@ out:
     return ret;
 }
 
-/* start */
-static int ubxros_start(ubx_block_t *b)
+// start
+int ubxros_start(ubx_block_t *b)
 {
-    // struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
+    char docstr[DOCSTR_MAXLEN];
+
+    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
 
     if (!ros::ok()) {
         ubx_err(b, "ROS node not initialized or shutting down");
         return -1;
     }
 
-    // create publishers and subscribers
+    try {
+        inf->conn_state = new struct conn_state[inf->conn_len];
+    }
+    catch (const std::bad_alloc& e) {
+        ubx_err(b, "EOUTOFMEM: failed to alloc conn_state");
+        return EOUTOFMEM;
+    }
+
+    // create ports, publishers and subscribers
+    for (int i=0; i<inf->conn_len; i++) {
+        const char dir = inf->conn_cfg[i].dir;
+        const char *ubx_type = inf->conn_cfg[i].ubx_type;
+        const char *topic = inf->conn_cfg[i].topic;
+
+        if (dir == 'P') {
+            snprintf(docstr, DOCSTR_MAXLEN, "in-port to publish on topic %s", topic);
+
+            if (ubx_inport_add(b, topic, docstr, ubx_type, 1))
+                goto out_fail;
+
+        } else if (dir == 'S') {
+            snprintf(docstr, DOCSTR_MAXLEN, "out-port with data from topic %s", topic);
+
+            if (ubx_outport_add(b, topic, docstr, ubx_type, 1))
+                goto out_fail;
+        }
+    }
+
+    for (int i=0; i<inf->conn_len; i++) {
+        const char dir = inf->conn_cfg[i].dir;
+        const char *ubx_type = inf->conn_cfg[i].ubx_type;
+        const char *topic = inf->conn_cfg[i].topic;
+        const ubxros_handler *handler = get_handler(ubx_type);
+        const ubx_port_t *p = ubx_port_get(b, topic);
+
+        if (dir == 'P') {
+            inf->conn_state[i].pub =
+                handler->pubfact(inf->nh, &inf->conn_cfg[i], p);
+        } else if (dir == 'S') {
+            inf->conn_state[i].sub =
+                handler->subfact(inf->nh, &inf->conn_cfg[i], p);
+        }
+    }
 
     // OK
     return 0;
+
+out_fail:
+    for (int i=0; i<inf->conn_len; i++) {
+        const char *topic = inf->conn_cfg[i].topic;
+        if(ubx_port_get(b, topic) != 0)
+            ubx_port_rm(b, topic);
+    }
+    return -1;
 }
 
-/* stop */
-static void ubxros_stop(ubx_block_t *b)
+// stop
+void ubxros_stop(ubx_block_t *b)
 {
-    (void)b;
+    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
 
-    //struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
-    ubx_debug(b, "shutting down");
-    // ubx_debug(b, "shutting down %s", inf->topic);
-    // inf->pub.shutdown();
-    // inf->sub.shutdown();
+    for (int i=0; i<inf->conn_len; i++) {
+
+        const char dir = inf->conn_cfg[i].dir;
+
+        if (dir == 'S')
+            inf->conn_state[i].sub.shutdown();
+
+        // the captured pub will be deleted when the capturing
+        // function is deleted below.
+    }
+
+    delete inf->conn_state;
+
+    // remove all added ports
+    for (int i=0; i<inf->conn_len; i++)
+        ubx_port_rm(b, inf->conn_cfg[i].topic);
+
+    inf->conn_state = NULL;
 }
 
-/* cleanup */
-static void ubxros_cleanup(ubx_block_t *b)
+// cleanup
+void ubxros_cleanup(ubx_block_t *b)
 {
     struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
 
@@ -253,18 +277,19 @@ static void ubxros_cleanup(ubx_block_t *b)
     return;
 }
 
-/* step */
-static void ubxros_step(ubx_block_t *b)
+// step
+void ubxros_step(ubx_block_t *b)
 {
-    (void)b;
-
-    // struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
+    struct ubxros_info *inf = (struct ubxros_info*) b->private_data;
 
     // process callbacks
     ros::spinOnce();
 
     // publish data
-    // TODO invoke all publishers
+    for (int i=0; i<inf->conn_len; i++) {
+        if (inf->conn_cfg[i].dir == 'P')
+            inf->conn_state[i].pub();
+    }
 }
 
 /* put everything together */
