@@ -1,22 +1,12 @@
 #define UBX_DEBUG
 
 #include <ubx/ubx.h>
-#include <ubxkdl.hpp>
-
 #include <ros/ros.h>
-#include <std_msgs/Int32.h>
-#include <std_msgs/Int64.h>
-#include <std_msgs/UInt32.h>
-#include <std_msgs/UInt64.h>
-#include <geometry_msgs/Vector3.h>
 
 #include "types/ubxros_conn.h"
 #include "types/ubxros_conn.h.hexarr"
 
 #define DOCSTR_MAXLEN	128
-
-// ubxros handlers
-typedef std::function<void ()> pubFunc;
 
 // this is used to declare the type that ubxros can handle for now
 // it's just a static compile time list. Could be extended to with
@@ -36,17 +26,17 @@ struct ubxros_handler {
     // a factory for creating publisher functions. A publisher
     // function is a thunk that will read from the given port and
     // publish it onto the given topic.
-    pubFunc (*pubfact)(ros::NodeHandle *nh,
-                       const struct ubxros_conn *uc,
-                       const ubx_port_t *p_pub);
+    std::function<void()> (*pubfact)(ros::NodeHandle *nh,
+                                     const struct ubxros_conn *uc,
+                                     const ubx_port_t *p_pub);
 
 };
 
 // state of an active ubxros connection
 struct conn_state {
-	struct ubxros_conn *conn;
-	ros::Subscriber sub;
-	pubFunc pub;
+    struct ubxros_conn *conn;
+    ros::Subscriber sub;
+    std::function<void ()> pub;
 };
 
 // Block state

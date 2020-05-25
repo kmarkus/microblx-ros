@@ -38,7 +38,10 @@ foreach( type ${type_hdrs} )
 endforeach(type)
 
 # ros_std
-add_library(ubxros SHARED src/ros_std.hpp src/ros_std.cpp src/ubxros.cpp ${hexarrays})
+add_library(ubxros SHARED
+  src/ros_std.hpp src/ros_std.cpp
+  src/ros_kdl.hpp src/ros_kdl.cpp
+  src/ubxros.h src/ubxros.cpp ${hexarrays})
 
 set_target_properties(ubxros PROPERTIES
   INSTALL_RPATH_USE_LINK_PATH TRUE
