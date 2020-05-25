@@ -9,33 +9,33 @@ struct ubxros_handler handlers [] = {
     {
         .ros_type = "std_msgs/Float32",
         .ubx_type = "float",
-        .subfact = makeFloat32Sub,
-        .pubfact = makeFloat32Pub
+        .subfact = makeSub<std_msgs::Float32>,
+        .pubfact = makePub<std_msgs::Float32>,
     }, {
         .ros_type = "std_msgs/Float64",
         .ubx_type = "double",
-        .subfact = makeFloat64Sub,
-        .pubfact = makeFloat64Pub
+        .subfact = makeSub<std_msgs::Float64>,
+        .pubfact = makePub<std_msgs::Float64>,
     }, {
         .ros_type = "std_msgs/Int32",
         .ubx_type = "int32_t",
-        .subfact = makeInt32Sub,
-        .pubfact = makeInt32Pub
+        .subfact = makeSub<std_msgs::Int32>,
+        .pubfact = makePub<std_msgs::Int32>,
     }, {
         .ros_type = "std_msgs/Int64",
         .ubx_type = "int64_t",
-        .subfact = makeInt64Sub,
-        .pubfact = makeInt64Pub
+        .subfact = makeSub<std_msgs::Int64>,
+        .pubfact = makePub<std_msgs::Int64>,
     }, {
         .ros_type = "std_msgs/UInt32",
         .ubx_type = "uint32_t",
-        .subfact = makeUInt32Sub,
-        .pubfact = makeUInt32Pub
+        .subfact = makeSub<std_msgs::UInt32>,
+        .pubfact = makePub<std_msgs::UInt32>,
     }, {
         .ros_type = "std_msgs/UInt64",
         .ubx_type = "uint64_t",
-        .subfact = makeUInt64Sub,
-        .pubfact = makeUInt64Pub
+        .subfact = makeSub<std_msgs::UInt64>,
+        .pubfact = makePub<std_msgs::UInt64>,
     }, {
         .ros_type = "geomety_msgs/Vector3",
         .ubx_type = "struct kdl_vector",
