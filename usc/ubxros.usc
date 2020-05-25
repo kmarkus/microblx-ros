@@ -2,39 +2,53 @@ return bd.system
 {
    imports = {
       "stdtypes", "ptrig", "lfds_cyclic", "ubxros",
-      "mqueue", "ramp_int32", "rand_int32", "kdl_types",
+      "mqueue", "cconst", "ramp_int32", "rand_int32",
+      "kdl_types",
    },
 
    blocks = {
-      { name="rosbridge_1", type="ubxros" },
-      { name="ramp_1", type="ramp_int32" },
-      { name="rand_1", type="rand_int32" },
-      { name="ptrig_1", type="std_triggers/ptrig" },
+      { name="rosbridge1", type="ubxros" },
+      { name="ramp1", type="ramp_int32" },
+      { name="rand1", type="rand_int32" },
+      { name="vector_const1", type="consts/cconst" },
+      { name="ptrig1", type="std_triggers/ptrig" },
       { name="vector_sub_out", type="mqueue" },
    },
 
    configurations = {
-      { name="rosbridge_1",
-	config = {
-	   connections = {
-	      { topic = "pub_int", dir='P', ubx_type="int32_t" },
-	      { topic = "pub_int2", dir='P', ubx_type="int32_t" },
-	      { topic = "sub_int", dir='S', ubx_type="int32_t" },
-	      -- { topic = "vector_pub", dir='P', ubx_type="struct kdl_vector" },
-	      { topic = "vector_sub", dir='S', ubx_type="struct kdl_vector" },
-	      -- { topic = "sub_frame", dir='S', ubx_type="kdl_frame" },
-	   }
-	}
+      {
+	 name="rosbridge1",
+	 config = {
+	    connections = {
+	       { topic = "ramp_int32", dir='P', ubx_type="int32_t" },
+	       { topic = "rand_int32", dir='P', ubx_type="int32_t" },
+	       { topic = "listen_int", dir='S', ubx_type="int32_t" },
+	       { topic = "vector_pub", dir='P', ubx_type="struct kdl_vector" },
+	       { topic = "vector_sub", dir='S', ubx_type="struct kdl_vector" },
+	       -- { topic = "sub_frame", dir='S', ubx_type="kdl_frame" },
+	    }
+	 }
       },
-      { name="ramp_1", config = { slope=1, start=0 } },
-      { name="ptrig_1", config = {
+      {
+	 name="ramp1",
+	 config = { slope=1, start=0 }
+      },
+      {
+	 name="vector_const1",
+	 config = {
+	    type_name = "struct kdl_vector",
+	    value = { x=11.1, y=22.2, z=33.3 },
+	 }
+      },
+      { name="ptrig1", config = {
 	   period = {sec=0, usec=1000000 },
 	   tstats_mode=1,
 	   tstats_profile_path="/tmp",
 	   trig_blocks={
-	      { b="#ramp_1", num_steps=1 },
-	      { b="#rand_1", num_steps=1 },
-	      { b="#rosbridge_1", num_steps=1 }
+	      { b="#ramp1", num_steps=1 },
+	      { b="#rand1", num_steps=1 },
+	      { b="#vector_const1", num_steps=1 },
+	      { b="#rosbridge1", num_steps=1 }
 	   } }
       },
       {
@@ -45,12 +59,13 @@ return bd.system
 	    data_len = 1,
 	    buffer_len = 4,
 	 }
-      }
+      },
    },
 
    connections = {
-      { src="ramp_1.out", tgt="rosbridge_1.pub_int" },
-      { src="rand_1.out", tgt="rosbridge_1.pub_int2" },
-      { src="rosbridge_1.vector_sub", tgt="vector_sub_out" },
+      { src="ramp1.out", tgt="rosbridge1.ramp_int32" },
+      { src="rand1.out", tgt="rosbridge1.rand_int32" },
+      { src="vector_const1.out", tgt="rosbridge1.vector_pub" },
+      { src="rosbridge1.vector_sub", tgt="vector_sub_out" },
    },
 }

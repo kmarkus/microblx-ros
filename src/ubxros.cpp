@@ -77,6 +77,36 @@ ros::Subscriber makeKDLVectorSub(ros::NodeHandle *nh,
 
 }
 
+pubFunc makeKDLVectorPub(ros::NodeHandle *nh,
+                         const struct ubxros_conn *uc,
+                         const ubx_port_t *p_pub)
+{
+    ros::Publisher pub = nh->advertise<geometry_msgs::Vector3>(uc->topic, uc->queue_size, uc->latch);
+
+    assert(nh != NULL);
+    assert(uc != NULL);
+    assert(p_pub != NULL);
+
+    return [p_pub,uc,pub]() {
+               geometry_msgs::Vector3 msg;
+               KDL::Vector v;
+
+               int len = portRead(p_pub, &v, 1);
+
+               tf::vectorKDLToMsg(v, msg);
+
+               if(len > 0) {
+                   ubx_debug(p_pub->block, "publishing Vector3 x=%f,y=%f,z=%f on topic %s",
+                             msg.x, msg.y, msg.z, uc->topic);
+                   pub.publish(msg);
+               } else if (len == 0) {
+                   ubx_debug(p_pub->block, "no new data on topic %s", uc->topic);
+               } else {
+                   ubx_err(p_pub->block, "failed to read port %s", p_pub->name);
+               }
+           };
+}
+
 
 struct ubxros_handler handlers [] = {
     {
@@ -88,7 +118,7 @@ struct ubxros_handler handlers [] = {
         .ros_type = "geomety_msgs/Vector3",
         .ubx_type = "struct kdl_vector",
         .subfact = makeKDLVectorSub,
-        .pubfact = NULL,
+        .pubfact = makeKDLVectorPub,
     }
 };
 
