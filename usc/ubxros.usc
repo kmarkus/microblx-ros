@@ -2,14 +2,15 @@ return bd.system
 {
    imports = {
       "stdtypes", "ptrig", "lfds_cyclic", "ubxros",
-      "mqueue", "cconst", "ramp_int32", "rand_int32",
-      "kdl_types",
+      "mqueue", "cconst", "ramp_int32",
+      "rand_int32", "rand_double", "kdl_types",
    },
 
    blocks = {
       { name="rosbridge1", type="ubxros" },
       { name="ramp1", type="ramp_int32" },
       { name="rand1", type="rand_int32" },
+      { name="rand_double1", type="rand_double" },
       { name="vector_const1", type="consts/cconst" },
       { name="ptrig1", type="std_triggers/ptrig" },
       { name="vector_sub_out", type="mqueue" },
@@ -22,6 +23,7 @@ return bd.system
 	    connections = {
 	       { topic = "ramp_int32", dir='P', ubx_type="int32_t" },
 	       { topic = "rand_int32", dir='P', ubx_type="int32_t" },
+	       { topic = "rand_double", dir='P', ubx_type="double" },
 	       { topic = "listen_int", dir='S', ubx_type="int32_t" },
 	       { topic = "vector_pub", dir='P', ubx_type="struct kdl_vector" },
 	       { topic = "vector_sub", dir='S', ubx_type="struct kdl_vector" },
@@ -47,6 +49,7 @@ return bd.system
 	   trig_blocks={
 	      { b="#ramp1", num_steps=1 },
 	      { b="#rand1", num_steps=1 },
+	      { b="#rand_double1", num_steps=1 },
 	      { b="#vector_const1", num_steps=1 },
 	      { b="#rosbridge1", num_steps=1 }
 	   } }
@@ -65,6 +68,7 @@ return bd.system
    connections = {
       { src="ramp1.out", tgt="rosbridge1.ramp_int32" },
       { src="rand1.out", tgt="rosbridge1.rand_int32" },
+      { src="rand_double1.out", tgt="rosbridge1.rand_double" },
       { src="vector_const1.out", tgt="rosbridge1.vector_pub" },
       { src="rosbridge1.vector_sub", tgt="vector_sub_out" },
    },

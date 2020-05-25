@@ -34,11 +34,11 @@ std::function<void ()> makeKDLVectorPub(ros::NodeHandle *nh,
                                         const struct ubxros_conn *uc,
                                         const ubx_port_t *p_pub)
 {
-    ros::Publisher pub = nh->advertise<geometry_msgs::Vector3>(uc->topic, uc->queue_size, uc->latch);
-
     assert(nh != NULL);
     assert(uc != NULL);
     assert(p_pub != NULL);
+
+    ros::Publisher pub = nh->advertise<geometry_msgs::Vector3>(uc->topic, uc->queue_size, uc->latch);
 
     return [p_pub,uc,pub]() {
                geometry_msgs::Vector3 msg;
