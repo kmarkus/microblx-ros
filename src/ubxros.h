@@ -1,4 +1,3 @@
-#define UBX_DEBUG
 
 #include <ubx/ubx.h>
 #include <ros/ros.h>

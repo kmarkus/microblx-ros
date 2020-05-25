@@ -1,3 +1,6 @@
+#ifndef ROS_STD_HPP
+#define ROS_STD_HPP
+
 #include <ubx/ubx.h>
 #include "types/ubxros_conn.h"
 
@@ -68,3 +71,5 @@ std::function<void()> makePub(ros::NodeHandle *nh,
                }
            };
 }
+
+#endif // ROS_STD_HPP

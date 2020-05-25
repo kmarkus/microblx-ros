@@ -37,10 +37,35 @@ struct ubxros_handler handlers [] = {
         .subfact = makeSub<std_msgs::UInt64>,
         .pubfact = makePub<std_msgs::UInt64>,
     }, {
-        .ros_type = "geomety_msgs/Vector3",
+        .ros_type = "geometry_msgs/Vector3",
         .ubx_type = "struct kdl_vector",
-        .subfact = makeKDLVectorSub,
-        .pubfact = makeKDLVectorPub,
+        .subfact = makeSub<geometry_msgs::Vector3, KDL::Vector>,
+        .pubfact = makePub<geometry_msgs::Vector3, KDL::Vector>,
+    }, {
+        .ros_type = "geometry_msgs/Quaternion",
+        .ubx_type = "struct kdl_rotation",
+        .subfact = makeSub<geometry_msgs::Quaternion, KDL::Rotation>,
+        .pubfact = makePub<geometry_msgs::Quaternion, KDL::Rotation>,
+    }, {
+        .ros_type = "geometry_msgs/Transform",
+        .ubx_type = "struct kdl_frame",
+        .subfact = makeSub<geometry_msgs::Transform, KDL::Frame>,
+        .pubfact = makePub<geometry_msgs::Transform, KDL::Frame>,
+    }, {
+        .ros_type = "geometry_msgs/Pose",
+        .ubx_type = "struct kdl_frame",
+        .subfact = makeSub<geometry_msgs::Pose, KDL::Frame>,
+        .pubfact = makePub<geometry_msgs::Pose, KDL::Frame>,
+    }, {
+        .ros_type = "geometry_msgs/Twist",
+        .ubx_type = "struct kdl_twist",
+        .subfact = makeSub<geometry_msgs::Twist, KDL::Twist>,
+        .pubfact = makePub<geometry_msgs::Twist, KDL::Twist>,
+    }, {
+        .ros_type = "geometry_msgs/Wrench",
+        .ubx_type = "struct kdl_wrench",
+        .subfact = makeSub<geometry_msgs::Wrench, KDL::Wrench>,
+        .pubfact = makePub<geometry_msgs::Wrench, KDL::Wrench>,
     }
 };
 

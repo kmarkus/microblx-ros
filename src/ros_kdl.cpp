@@ -1,61 +1,26 @@
-#define UBX_DEBUG
+#ifndef ROS_KDL_CPP
+#define ROS_KDL_CPP
 
-#include <ubxkdl.hpp>
-#include <geometry_msgs/Vector3.h>
 #include <kdl_conversions/kdl_msg.h>
-
 #include "ros_kdl.hpp"
 
-//
-// KDL types
-//
-ros::Subscriber makeKDLVectorSub(ros::NodeHandle *nh,
-                                 const struct ubxros_conn *uc,
-                                 const ubx_port_t *p_sub)
-{
-    assert(nh != NULL);
-    assert(uc != NULL);
-    assert(p_sub != NULL);
+// this actually defines the read/write helpers
+#include <ubxkdl.hpp>
 
-    return nh->subscribe<geometry_msgs::Vector3>(
-        uc->topic,
-        uc->queue_size,
-        [p_sub](const geometry_msgs::Vector3ConstPtr& msg) {
-            KDL::Vector v;
-            ubx_debug(p_sub->block, "received Vector3 x=%f,y=%f,z=%f, ",
-                      msg->x, msg->y, msg->z);
-            tf::vectorMsgToKDL(*msg, v);
-            portWrite(p_sub, &v, 1);
-        });
+// define overloaded conversion functions
+void convert(const geometry_msgs::Point &m, KDL::Vector &k) { tf::pointMsgToKDL(m,k); }
+void convert(const KDL::Vector &k, geometry_msgs::Point &m) { tf::pointKDLToMsg(k,m); }
+void convert(const geometry_msgs::Pose &m, KDL::Frame &k) { tf::poseMsgToKDL(m,k); }
+void convert(const KDL::Frame &k, geometry_msgs::Pose &m) { tf::poseKDLToMsg(k,m); }
+void convert(const geometry_msgs::Quaternion &m, KDL::Rotation &k) { tf::quaternionMsgToKDL(m,k); }
+void convert(const KDL::Rotation &k, geometry_msgs::Quaternion &m) { tf::quaternionKDLToMsg(k,m); }
+void convert(const geometry_msgs::Transform &m, KDL::Frame &k) { tf::transformMsgToKDL(m,k); }
+void convert(const KDL::Frame &k, geometry_msgs::Transform &m) { tf::transformKDLToMsg(k,m); }
+void convert(const geometry_msgs::Twist &m, KDL::Twist &k) { tf::twistMsgToKDL(m,k); }
+void convert(const KDL::Twist &k, geometry_msgs::Twist &m) { tf::twistKDLToMsg(k,m); }
+void convert(const geometry_msgs::Vector3 &m, KDL::Vector &k) { tf::vectorMsgToKDL(m,k); }
+void convert(const KDL::Vector &k, geometry_msgs::Vector3 &m) { tf::vectorKDLToMsg(k,m); }
+void convert(const geometry_msgs::Wrench &m, KDL::Wrench &k) { tf::wrenchMsgToKDL(m,k); }
+void convert(const KDL::Wrench &k, geometry_msgs::Wrench &m) { tf::wrenchKDLToMsg(k,m); }
 
-}
-
-std::function<void ()> makeKDLVectorPub(ros::NodeHandle *nh,
-                                        const struct ubxros_conn *uc,
-                                        const ubx_port_t *p_pub)
-{
-    assert(nh != NULL);
-    assert(uc != NULL);
-    assert(p_pub != NULL);
-
-    ros::Publisher pub = nh->advertise<geometry_msgs::Vector3>(uc->topic, uc->queue_size, uc->latch);
-
-    return [p_pub,uc,pub]() {
-               geometry_msgs::Vector3 msg;
-               KDL::Vector v;
-
-               int len = portRead(p_pub, &v, 1);
-
-               tf::vectorKDLToMsg(v, msg);
-
-               if(len > 0) {
-                   ubx_debug(p_pub->block, "publishing Vector3 x=%f,y=%f,z=%f on topic %s",
-                             msg.x, msg.y, msg.z, uc->topic);
-                   pub.publish(msg);
-               } else if (len == 0) {
-                   ubx_debug(p_pub->block, "no new data on topic %s", uc->topic);
-               } else {
-                   ubx_err(p_pub->block, "failed to read port %s", p_pub->name);
-               }
-           };
-}
+#endif
