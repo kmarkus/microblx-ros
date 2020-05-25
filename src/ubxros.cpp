@@ -131,6 +131,11 @@ int ubxros_init(ubx_block_t *b)
     struct ubxros_info *inf;
     char docstr[DOCSTR_MAXLEN];
 
+
+    for (unsigned long i=0; i<ARRAY_SIZE(handlers); i++)
+        ubx_debug(b, "handler %li: %s <-> %s",
+                  i, handlers[i].ros_type, handlers[i].ubx_type);
+
     try {
         inf = new ubxros_info();
     }
