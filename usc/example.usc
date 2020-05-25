@@ -1,0 +1,58 @@
+-- A minimal example composition that publishes a random double to a
+-- ROS topic `rand_double`. Moreoever, it subscribes to the topic
+-- `listen_int32` and forwards those values to a message queue, from
+-- where they can be read using ubx-mq
+
+return bd.system
+{
+   imports = {
+      "stdtypes", "ptrig", "lfds_cyclic", "ubxros",
+      "mqueue", "cconst", "ramp_int32",
+      "rand_int32", "rand_double", "kdl_types",
+   },
+
+   blocks = {
+      { name="rosbridge1", type="ubxros" },
+      { name="rand_double1", type="rand_double" },
+      { name="ptrig1", type="std_triggers/ptrig" },
+      { name="listen_int32_out", type="mqueue" },
+   },
+
+   configurations = {
+      {
+	 name="rosbridge1",
+	 config = {
+	    connections = {
+	       { topic = "rand_double", dir='P', ubx_type="double" },
+	       { topic = "listen_int32", dir='S', ubx_type="int32_t" },
+	    }
+	 }
+      },
+      {
+	 name="ptrig1",
+	 config = {
+	    period = {sec=0, usec=1000000 },
+	    tstats_mode=1,
+	    tstats_profile_path="/tmp",
+	    trig_blocks={
+	       { b="#rand_double1", num_steps=1 },
+	       { b="#rosbridge1", num_steps=1 }
+	    },
+	 },
+      },
+      {
+	 name = "listen_int32_out",
+	 config = {
+	    mq_id = "listen_int32_out",
+	    type_name = "int32_t",
+	    data_len = 1,
+	    buffer_len = 4,
+	 }
+      },
+   },
+
+   connections = {
+      { src="rand_double1.out", tgt="rosbridge1.rand_double" },
+      { src="rosbridge1.listen_int32", tgt="listen_int32_out" },
+   },
+}

@@ -1,3 +1,6 @@
+-- This is a big use for testing the different types.
+-- Take a look at example.usc for a minimal example.
+
 return bd.system
 {
    imports = {
