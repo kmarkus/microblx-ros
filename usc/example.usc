@@ -30,7 +30,7 @@ return bd.system
       {
 	 name="ptrig1",
 	 config = {
-	    period = {sec=0, usec=1000000 },
+	    period = {sec=0, usec=100000 },
 	    tstats_mode=1,
 	    tstats_profile_path="/tmp",
 	    trig_blocks={
