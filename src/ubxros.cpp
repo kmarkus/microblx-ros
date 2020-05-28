@@ -1,4 +1,4 @@
-#define UBX_DEBUG
+#undef UBX_DEBUG
 
 #include "ubxros.h"
 
