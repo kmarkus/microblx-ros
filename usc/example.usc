@@ -24,7 +24,7 @@ return bd.system
 	 config = {
 	    connections = {
 	       { topic = "rand_double", dir='P', ubx_type="double" },
-	       { topic = "listen_int32", dir='S', ubx_type="int32_t" },
+	       { topic = "listen_int32", dir='S', ros_type="std_msgs/Int32" },
 	    }
 	 }
       },
