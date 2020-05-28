@@ -16,6 +16,7 @@ return bd.system
       { name="rand_double1", type="rand_double" },
       { name="vector_const1", type="consts/cconst" },
       { name="frame_const1", type="consts/cconst" },
+      { name="frame_const2", type="consts/cconst" },
       { name="ptrig1", type="std_triggers/ptrig" },
       { name="vector_sub_out", type="mqueue" },
    },
@@ -32,6 +33,7 @@ return bd.system
 	       { topic = "vector_pub", dir='P', ubx_type="struct kdl_vector" },
 	       { topic = "vector_sub", dir='S', ubx_type="struct kdl_vector" },
 	       { topic = "frame_pub", dir='P', ubx_type="struct kdl_frame" },
+	       { topic = "pose_pub", dir='P', ros_type="geometry_msgs/Pose", ubx_type="struct kdl_frame" },
 	    }
 	 }
       },
@@ -58,6 +60,18 @@ return bd.system
 	    }
 	 }
       },
+      {
+	 name="frame_const2",
+	 config = {
+	    type_name = "struct kdl_frame",
+	    value = {
+	       p = { x = 888, y=999, z=666 },
+	       M = { data = { 1, 0, 0,
+			      0, 1, 0,
+			      0, 0, 1 } }
+	    }
+	 }
+      }      ,
 
       { name="ptrig1", config = {
 	   period = {sec=0, usec=1000000 },
@@ -69,6 +83,7 @@ return bd.system
 	      { b="#rand_double1", num_steps=1 },
 	      { b="#vector_const1", num_steps=1 },
 	      { b="#frame_const1", num_steps=1 },
+	      { b="#frame_const2", num_steps=1 },
 	      { b="#rosbridge1", num_steps=1 }
 	   } }
       },
@@ -89,6 +104,7 @@ return bd.system
       { src="rand_double1.out", tgt="rosbridge1.rand_double" },
       { src="vector_const1.out", tgt="rosbridge1.vector_pub" },
       { src="frame_const1.out", tgt="rosbridge1.frame_pub" },
+      { src="frame_const2.out", tgt="rosbridge1.pose_pub" },
       { src="rosbridge1.vector_sub", tgt="vector_sub_out" },
    },
 }

@@ -11,6 +11,7 @@ struct ubxros_conn {
 	char topic[ROS_TOPIC_MAXLEN];
 	char dir[1+1];
 	char ubx_type[TYPE_NAME_MAXLEN];
+	char ros_type[TYPE_NAME_MAXLEN];
 
 	uint32_t queue_size;
 	int latch; /* pub only */

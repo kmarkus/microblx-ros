@@ -1,3 +1,4 @@
+#define UBX_DEBUG
 
 #include "ubxros.h"
 
@@ -69,11 +70,20 @@ struct ubxros_handler handlers [] = {
     }
 };
 
-const struct ubxros_handler* get_handler(const char* type)
+const struct ubxros_handler* get_handler(const struct ubxros_conn* conn)
 {
     for (unsigned long i=0; i<ARRAY_SIZE(handlers); i++) {
-        if (strncmp(handlers[i].ubx_type, type, PORT_NAME_MAXLEN) == 0)
-            return &handlers[i];
+
+        if (strnlen(conn->ubx_type, TYPE_NAME_MAXLEN) > 0) {
+            if (strncmp(handlers[i].ubx_type, conn->ubx_type, TYPE_NAME_MAXLEN) != 0)
+                continue;
+        }
+
+        if (strnlen(conn->ros_type, TYPE_NAME_MAXLEN) > 0) {
+            if (strncmp(handlers[i].ros_type, conn->ros_type, TYPE_NAME_MAXLEN) != 0)
+                continue;
+        }
+        return &handlers[i];
     }
     return NULL;
 }
@@ -90,18 +100,16 @@ int check_connections(ubx_block_t *b)
     for (long i=0; i<inf->conn_len; i++) {
         const char dir = inf->conn_cfg[i].dir[0];
         const char *ubx_type = inf->conn_cfg[i].ubx_type;
+        const char *ros_type = inf->conn_cfg[i].ros_type;
         const char *topic = inf->conn_cfg[i].topic;
         const struct ubxros_handler* handler;
 
-        if (ubx_type_get(b->ni, ubx_type) == NULL) {
-            ubx_err(b, "EINVALID_TYPE: %s in connection %li", ubx_type, i);
-            ret = EINVALID_TYPE;
-        }
-
-        handler = get_handler(ubx_type);
+        handler = get_handler(&inf->conn_cfg[i]);
 
         if (!handler) {
-            ubx_err(b, "EINVALID_TYPE: no handler for type %s (topic %s)", ubx_type, topic);
+            ubx_err(b, "EINVALID_TYPE: no handler for types %s/%s (topic %s)",
+                    (ubx_type != NULL) ? ubx_type : "-",
+                    (ros_type != NULL) ? ros_type : "-", topic);
             ret = EINVALID_TYPE;
         }
 
@@ -184,25 +192,27 @@ int ubxros_init(ubx_block_t *b)
     // create ports
     for (int i=0; i<inf->conn_len; i++) {
         const char dir = inf->conn_cfg[i].dir[0];
-        const char *ubx_type = inf->conn_cfg[i].ubx_type;
         const char *topic = inf->conn_cfg[i].topic;
+        const ubxros_handler *handler = get_handler(&inf->conn_cfg[i]);
 
         if (dir == 'P') {
             snprintf(docstr, DOCSTR_MAXLEN, "in-port to publish on topic %s", topic);
 
-            if (ubx_inport_add(b, topic, docstr, ubx_type, 1))
-                goto out_rmports;
+            ret = ubx_inport_add(b, topic, docstr, handler->ubx_type, 1);
 
-            ubx_debug(b, "added inport %s", topic);
+            if (ret)
+                goto out_rmports;
 
         } else if (dir == 'S') {
             snprintf(docstr, DOCSTR_MAXLEN, "out-port with data from topic %s", topic);
 
-            if (ubx_outport_add(b, topic, docstr, ubx_type, 1))
-                goto out_rmports;
+            ret = ubx_outport_add(b, topic, docstr, handler->ubx_type, 1);
 
-            ubx_debug(b, "added outport %s", topic);
+            if (ret)
+                goto out_rmports;
         }
+
+        ubx_debug(b, "added %s-port %s [%s]", (dir=='P')?"out":"in", topic, handler->ubx_type);
     }
 
     /* all good */
@@ -243,12 +253,15 @@ int ubxros_start(ubx_block_t *b)
     // create publishers and subscribers
     for (int i=0; i<inf->conn_len; i++) {
         const char dir = inf->conn_cfg[i].dir[0];
-        const char *ubx_type = inf->conn_cfg[i].ubx_type;
         const char *topic = inf->conn_cfg[i].topic;
-        const ubxros_handler *handler = get_handler(ubx_type);
+        const ubxros_handler *handler = get_handler(&inf->conn_cfg[i]);
         const ubx_port_t *p = ubx_port_get(b, topic);
 
-        ubx_debug(b, "pub/sub creation: %p, %s", p, p->name);
+        ubx_info(b, "%s: topic %s [%s] %s ubx %s [%s]",
+                 (dir == 'P' ? "pub" : "sub"),
+                 topic, handler->ros_type,
+                 (dir == 'P' ? "<-" : "->"),
+                 topic, handler->ubx_type);
 
         if (dir == 'P') {
             inf->conn_state[i].pub =
