@@ -37,6 +37,7 @@ struct ubxros_handler handlers [] = {
         .ubx_type = "uint64_t",
         .subfact = makeSub<std_msgs::UInt64>,
         .pubfact = makePub<std_msgs::UInt64>,
+#ifdef CONFIG_GEOMETRY_MSGS
     }, {
         .ros_type = "geometry_msgs/Vector3",
         .ubx_type = "struct kdl_vector",
@@ -67,6 +68,7 @@ struct ubxros_handler handlers [] = {
         .ubx_type = "struct kdl_wrench",
         .subfact = makeSub<geometry_msgs::Wrench, KDL::Wrench>,
         .pubfact = makePub<geometry_msgs::Wrench, KDL::Wrench>,
+#endif
     }
 };
 
