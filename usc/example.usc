@@ -7,8 +7,7 @@ return bd.system
 {
    imports = {
       "stdtypes", "ptrig", "lfds_cyclic", "ubxros",
-      "mqueue", "cconst", "ramp_int32",
-      "rand_int32", "rand_double", "kdl_types",
+      "mqueue", "rand_double"
    },
 
    blocks = {
