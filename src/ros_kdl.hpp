@@ -1,3 +1,6 @@
+#ifndef ROS_KDL_HPP
+#define ROS_KDL_HPP
+
 #include <ubx/ubx.h>
 #include <ros/ros.h>
 #include "types/ubxros_conn.h"
@@ -89,3 +92,4 @@ std::function<void ()> makePub(ros::NodeHandle *nh,
                }
            };
 }
+#endif // ROS_KDL_HPP
