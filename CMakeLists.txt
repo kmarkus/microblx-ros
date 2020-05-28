@@ -8,17 +8,27 @@ SET(UBXROS_VERSION 1.0.0)
 
 find_package(PkgConfig REQUIRED)
 
-find_package(orocos_kdl REQUIRED)
-include_directories(${orocos_kdl_INCLUDE_DIRS})
-link_directories(${orocos_kdl_LIBRARY_DIRS})
-
+# required:
+pkg_check_modules(UBX REQUIRED ubx0>=0.8.1)
 pkg_check_modules(ROSCPP REQUIRED roscpp)
-pkg_check_modules(KDL REQUIRED orocos-kdl>=1.4.0)
-pkg_check_modules(KDL_CONV REQUIRED kdl_conversions)
-pkg_check_modules(UBX REQUIRED ubxkdl)
-pkg_check_modules(UBX REQUIRED ubx0>=0.8.0)
+
+# optional:
+pkg_check_modules(KDL orocos-kdl>=1.4.0)
+pkg_check_modules(KDL_CONV kdl_conversions)
+pkg_check_modules(UBXKDL ubxkdl)
+
 pkg_get_variable(UBX_MODDIR ubx0 UBX_MODDIR)
 find_program(TOCARR ubx-tocarr)
+
+set(ubxros_SOURCES)
+
+if("${KDL_FOUND}" AND "${KDL_CONV_FOUND}" AND "${UBXKDL_FOUND}")
+  message("building geometry_msgs support")
+  add_definitions(-DCONFIG_GEOMETRY_MSGS)
+  list(APPEND ubxros_SOURCES src/ros_kdl.hpp src/ros_kdl.cpp)
+else()
+  message(WARNING "missing deps, will not build geometry_msgs support")
+endif()
 
 # generate type hexarrays
 file(GLOB type_hdrs ${CMAKE_CURRENT_SOURCE_DIR}/src/types/*.h )
@@ -40,13 +50,12 @@ endforeach(type)
 # ros_std
 add_library(ubxros SHARED
   src/ros_std.hpp src/ros_std.cpp
-  src/ros_kdl.hpp src/ros_kdl.cpp
-  src/ubxros.h src/ubxros.cpp ${hexarrays})
+  src/ubxros.h src/ubxros.cpp
+  ${ubxros_SOURCES}
+  ${hexarrays})
 
 set_target_properties(ubxros PROPERTIES
-  INSTALL_RPATH_USE_LINK_PATH TRUE
-  PUBLIC_HEADER "${type_hdrs}"
-  PREFIX "")
+  INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 target_compile_options(ubxros PUBLIC
   ${UBX_CFLAGS} ${ROS_CFLAGS} ${KDL_CFLAGS}
@@ -56,7 +65,7 @@ target_compile_options(ubxros PUBLIC
   -fvisibility=hidden
   )
 
-target_link_libraries(ubxros ${KDL_CONV_LDFLAGS} ${UBX_LDFLAGS} ${ROSCPP_LDFLAGS})
+target_link_libraries(ubxros ${KDL_LDFLAGS} ${KDL_CONV_LDFLAGS} ${UBX_LDFLAGS} ${ROSCPP_LDFLAGS})
 
 install(TARGETS ubxros DESTINATION ${UBX_MODDIR})
 
