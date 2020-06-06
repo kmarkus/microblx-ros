@@ -76,13 +76,13 @@ const struct ubxros_handler* get_handler(const struct ubxros_conn* conn)
 {
     for (unsigned long i=0; i<ARRAY_SIZE(handlers); i++) {
 
-        if (strnlen(conn->ubx_type, TYPE_NAME_MAXLEN) > 0) {
-            if (strncmp(handlers[i].ubx_type, conn->ubx_type, TYPE_NAME_MAXLEN) != 0)
+        if (strnlen(conn->ubx_type, UBX_TYPE_NAME_MAXLEN) > 0) {
+            if (strncmp(handlers[i].ubx_type, conn->ubx_type, UBX_TYPE_NAME_MAXLEN) != 0)
                 continue;
         }
 
-        if (strnlen(conn->ros_type, TYPE_NAME_MAXLEN) > 0) {
-            if (strncmp(handlers[i].ros_type, conn->ros_type, TYPE_NAME_MAXLEN) != 0)
+        if (strnlen(conn->ros_type, UBX_TYPE_NAME_MAXLEN) > 0) {
+            if (strncmp(handlers[i].ros_type, conn->ros_type, UBX_TYPE_NAME_MAXLEN) != 0)
                 continue;
         }
         return &handlers[i];
