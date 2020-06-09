@@ -334,7 +334,7 @@ void ubxros_step(ubx_block_t *b)
 }
 
 /* put everything together */
-ubx_block_t ubxros_block =
+ubx_proto_block_t ubxros_block =
 {
     .name = "ubxros",
     .meta_data = ubxros_meta,

@@ -62,8 +62,8 @@ char ubxros_meta[] =
 // block configs
 const char* CONNECTIONS = "connections";
 
-ubx_config_t ubxros_config[] = {
-    { .name=CONNECTIONS, .doc="microblx-ROS connections", .type_name = "struct ubxros_conn" },
+ubx_proto_config_t ubxros_config[] = {
+    { .name=CONNECTIONS, .type_name = "struct ubxros_conn", .doc="microblx-ROS connections" },
     { 0 },
 };
 
