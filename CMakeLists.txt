@@ -9,7 +9,7 @@ SET(UBXROS_VERSION 1.0.0)
 find_package(PkgConfig REQUIRED)
 
 # required:
-pkg_check_modules(UBX REQUIRED ubx0>=0.8.1)
+pkg_check_modules(UBX REQUIRED ubx0>=0.9.0)
 pkg_check_modules(ROSCPP REQUIRED roscpp)
 
 # optional:
@@ -55,7 +55,8 @@ add_library(ubxros SHARED
   ${hexarrays})
 
 set_target_properties(ubxros PROPERTIES
-  INSTALL_RPATH_USE_LINK_PATH TRUE)
+  INSTALL_RPATH_USE_LINK_PATH TRUE
+  PREFIX "")
 
 target_compile_options(ubxros PUBLIC
   ${UBX_CFLAGS} ${ROS_CFLAGS} ${KDL_CFLAGS}

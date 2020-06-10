@@ -47,7 +47,7 @@ docs](microblx.readthedocs.io).
 To build this package, the following dependencies need to be
 installed:
 
-- microblx (at least v0.8.1)
+- microblx (at least v0.9.0)
 - ROS1 (tested with Debian buster)
 - KDL (e.g. `liborocos-kdl-dev` or from src)
 - microblx-kdl-types

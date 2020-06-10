@@ -200,7 +200,7 @@ int ubxros_init(ubx_block_t *b)
         if (dir == 'P') {
             snprintf(docstr, DOCSTR_MAXLEN, "in-port to publish on topic %s", topic);
 
-            ret = ubx_inport_add(b, topic, docstr, handler->ubx_type, 1);
+            ret = ubx_inport_add(b, topic, docstr, 0, handler->ubx_type, 1);
 
             if (ret)
                 goto out_rmports;
@@ -208,7 +208,7 @@ int ubxros_init(ubx_block_t *b)
         } else if (dir == 'S') {
             snprintf(docstr, DOCSTR_MAXLEN, "out-port with data from topic %s", topic);
 
-            ret = ubx_outport_add(b, topic, docstr, handler->ubx_type, 1);
+            ret = ubx_outport_add(b, topic, docstr, 0, handler->ubx_type, 1);
 
             if (ret)
                 goto out_rmports;
