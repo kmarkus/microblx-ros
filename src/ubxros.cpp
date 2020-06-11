@@ -348,23 +348,23 @@ ubx_proto_block_t ubxros_block =
 };
 
 
-int ubxros_mod_init(ubx_node_info_t* ni)
+int ubxros_mod_init(ubx_node_t* nd)
 {
     int ret;
     ubx_type_t *tptr;
 
     for (tptr = ubxros_types; tptr->name != NULL; tptr++) {
-        ret = ubx_type_register(ni, tptr);
+        ret = ubx_type_register(nd, tptr);
         if (ret != 0) {
-            ubx_log(UBX_LOGLEVEL_ERR, ni,
+            ubx_log(UBX_LOGLEVEL_ERR, nd,
                     __func__,
                     "failed to register type %s", tptr->name);
             goto out;
         }
     }
-    ret = ubx_block_register(ni, &ubxros_block);
+    ret = ubx_block_register(nd, &ubxros_block);
     if (ret != 0) {
-        ubx_log(UBX_LOGLEVEL_ERR, ni, __func__,
+        ubx_log(UBX_LOGLEVEL_ERR, nd, __func__,
                 "failed to register %s block", ubxros_block.name);
     }
 
@@ -372,14 +372,14 @@ out:
     return ret;
 }
 
-void ubxros_mod_cleanup(ubx_node_info_t *ni)
+void ubxros_mod_cleanup(ubx_node_t *nd)
 {
     ubx_type_t *tptr;
 
     for (tptr = ubxros_types; tptr->name != NULL; tptr++)
-        ubx_type_unregister(ni, tptr->name);
+        ubx_type_unregister(nd, tptr->name);
 
-    ubx_block_unregister(ni, ubxros_block.name);
+    ubx_block_unregister(nd, ubxros_block.name);
 }
 
 UBX_MODULE_INIT(ubxros_mod_init)
