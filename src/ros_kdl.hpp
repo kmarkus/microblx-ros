@@ -30,17 +30,17 @@ void convert(const KDL::Vector &k, geometry_msgs::Vector3 &m);
 void convert(const geometry_msgs::Wrench &m, KDL::Wrench &k);
 void convert(const KDL::Wrench &k, geometry_msgs::Wrench &m);
 
-long portWrite(const ubx_port_t*, const KDL::Vector*, int);
-long portWrite(const ubx_port_t*, const KDL::Rotation*, int);
-long portWrite(const ubx_port_t*, const KDL::Frame*, int);
-long portWrite(const ubx_port_t*, const KDL::Twist*, int);
-long portWrite(const ubx_port_t*, const KDL::Wrench*, int);
+long portWrite(const ubx_port_t*, const KDL::Vector*, long);
+long portWrite(const ubx_port_t*, const KDL::Rotation*, long);
+long portWrite(const ubx_port_t*, const KDL::Frame*, long);
+long portWrite(const ubx_port_t*, const KDL::Twist*, long);
+long portWrite(const ubx_port_t*, const KDL::Wrench*, long);
 
-long portRead(const ubx_port_t*, KDL::Vector*, int);
-long portRead(const ubx_port_t*, KDL::Rotation*, int);
-long portRead(const ubx_port_t*, KDL::Frame*, int);
-long portRead(const ubx_port_t*, KDL::Twist*, int);
-long portRead(const ubx_port_t*, KDL::Wrench*, int);
+long portRead(const ubx_port_t*, KDL::Vector*, long);
+long portRead(const ubx_port_t*, KDL::Rotation*, long);
+long portRead(const ubx_port_t*, KDL::Frame*, long);
+long portRead(const ubx_port_t*, KDL::Twist*, long);
+long portRead(const ubx_port_t*, KDL::Wrench*, long);
 
 
 // Templated makeSub and makePub functions
