@@ -4,7 +4,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.14)
 
 project(microblx-ros)
 
-SET(UBXROS_VERSION 1.2.0)
+SET(UBXROS_VERSION 1.2.1)
 
 find_package(PkgConfig REQUIRED)
 
