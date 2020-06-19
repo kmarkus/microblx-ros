@@ -77,7 +77,7 @@ return bd.system
 	   period = {sec=0, usec=1000000 },
 	   tstats_mode=1,
 	   tstats_profile_path="/tmp",
-	   trig_blocks={
+	   chain0={
 	      { b="#ramp1", num_steps=1 },
 	      { b="#rand1", num_steps=1 },
 	      { b="#rand_double1", num_steps=1 },

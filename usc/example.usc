@@ -33,9 +33,9 @@ return bd.system
 	    period = {sec=0, usec=100000 },
 	    tstats_mode=1,
 	    tstats_profile_path="/tmp",
-	    trig_blocks={
-	       { b="#rand_double1", num_steps=1 },
-	       { b="#rosbridge1", num_steps=1 }
+	    chain0={
+	       { b="#rand_double1" },
+	       { b="#rosbridge1" }
 	    },
 	 },
       },
