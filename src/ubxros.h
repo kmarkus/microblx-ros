@@ -63,7 +63,7 @@ char ubxros_meta[] =
 const char* CONNECTIONS = "connections";
 
 ubx_proto_config_t ubxros_config[] = {
-    { .name=CONNECTIONS, .type_name = "struct ubxros_conn", .doc="microblx-ROS connections" },
+    { .name=CONNECTIONS, .type_name = "struct ubxros_conn", .min=1, .doc="microblx-ROS connections" },
     { 0 },
 };
 
