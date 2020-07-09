@@ -4,21 +4,28 @@
 return bd.system
 {
    imports = {
-      "stdtypes", "ptrig", "lfds_cyclic", "ubxros",
-      "mqueue", "cconst", "ramp_int32",
-      "rand_int32", "rand_double", "kdl_types",
+      "stdtypes",
+      "ptrig",
+      "lfds_cyclic",
+      "ubxros",
+      "mqueue",
+      "cconst",
+      "ramp_int32",
+      "rand_int32",
+      "rand_double",
+      "kdl_types",
    },
 
    blocks = {
       { name="rosbridge1", type="ubxros" },
-      { name="ramp1", type="ramp_int32" },
-      { name="rand1", type="rand_int32" },
-      { name="rand_double1", type="rand_double" },
-      { name="vector_const1", type="consts/cconst" },
-      { name="frame_const1", type="consts/cconst" },
-      { name="frame_const2", type="consts/cconst" },
-      { name="ptrig1", type="std_triggers/ptrig" },
-      { name="vector_sub_out", type="mqueue" },
+      { name="ramp1", type="ubx/ramp_int32" },
+      { name="rand1", type="ubx/rand_int32" },
+      { name="rand_double1", type="ubx/rand_double" },
+      { name="vector_const1", type="ubx/cconst" },
+      { name="frame_const1", type="ubx/cconst" },
+      { name="frame_const2", type="ubx/cconst" },
+      { name="ptrig1", type="ubx/ptrig" },
+      { name="vector_sub_out", type="ubx/mqueue" },
    },
 
    configurations = {

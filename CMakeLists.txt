@@ -9,7 +9,7 @@ SET(UBXROS_VERSION 1.2.1)
 find_package(PkgConfig REQUIRED)
 
 # required:
-pkg_check_modules(UBX REQUIRED ubx0>=0.9.0)
+pkg_check_modules(UBX REQUIRED ubx0>=0.9.1)
 pkg_check_modules(ROSCPP REQUIRED roscpp)
 
 # optional:

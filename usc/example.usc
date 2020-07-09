@@ -6,15 +6,19 @@
 return bd.system
 {
    imports = {
-      "stdtypes", "ptrig", "lfds_cyclic", "ubxros",
-      "mqueue", "rand_double"
+      "stdtypes",
+      "ptrig",
+      "lfds_cyclic",
+      "ubxros",
+      "mqueue",
+      "rand_double"
    },
 
    blocks = {
       { name="rosbridge1", type="ubxros" },
-      { name="rand_double1", type="rand_double" },
-      { name="ptrig1", type="std_triggers/ptrig" },
-      { name="listen_int32_out", type="mqueue" },
+      { name="rand_double1", type="ubx/rand_double" },
+      { name="ptrig1", type="ubx/ptrig" },
+      { name="listen_int32_out", type="ubx/mqueue" },
    },
 
    configurations = {
