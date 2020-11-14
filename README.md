@@ -25,7 +25,7 @@ use-case is to connect a minimal, hard real-time control or signal
 processing core to larger non real-time ROS application.
 
 This works as follows: the `ubxros` block is configured with the
-topics you want to publish or subcribe to. During initialization, this
+topics you want to publish or subscribe to. During initialization, this
 block creates microblx ports that are linked to the respective ROS
 topics. This means messages received on sub topics are written to
 output ports, and those read from input ports published to pub topics.
@@ -48,7 +48,7 @@ To build this package, the following dependencies need to be
 installed:
 
 - microblx (at least v0.9.0)
-- ROS1 (tested with Debian buster)
+- ROS1 (tested with Debian bullseye)
 - KDL (e.g. `liborocos-kdl-dev` or from src)
 - microblx-kdl-types
   ([git](https://github.com/kmarkus/microblx-kdl-types)). This adds
